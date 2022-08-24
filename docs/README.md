@@ -1,7 +1,7 @@
 ---
 home: true
 heroText: javaboy
-tagline: 在线文档
+tagline: 工作尚未有起色，离家又难以割舍，谈婚论嫁以至眼前，却还在路上寻找自己。
 actionText: 快速上手 →
 actionLink: /guide/
 features:

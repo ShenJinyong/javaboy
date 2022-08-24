@@ -1,6 +1,7 @@
 ﻿module.exports = {
   title: 'javaboy',
   description: 'javaboy的文档库',
+  base: '/javaboy/',
   themeConfig: {
     logo: '/logo.png',
 	nav: [
