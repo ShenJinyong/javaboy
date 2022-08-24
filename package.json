@@ -1,0 +1,24 @@
+{
+  "name": "javaboy",
+  "version": "1.0.0",
+  "description": "javabody的文档库",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+	"docs:dev": "vuepress dev docs",
+    "docs:build": "vuepress build docs"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ShenJinyong/javaboy.git"
+  },
+  "author": "沈金勇438217638@qq.com",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/ShenJinyong/javaboy/issues"
+  },
+  "homepage": "https://github.com/ShenJinyong/javaboy#readme",
+  "devDependencies": {
+    "vuepress": "^1.9.7"
+  }
+}
