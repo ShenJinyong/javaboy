@@ -14,11 +14,11 @@
 
 > 第三步：选择业务场景
 
-![业务场景](C:\Users\admin\Desktop\javaboy\docs\服务器\白嫖\images\业务场景.png)
+![业务场景](.\images\业务场景.png)
 
 > 第四步：选择产品规格
 
-![产品规格](C:\Users\admin\Desktop\javaboy\docs\服务器\白嫖\images\产品规格.png)
+![产品规格](.\images\产品规格.png)
 
 > 第五步：选择到期释放设置
 
@@ -34,11 +34,11 @@
 
 > 第八步：免费试用
 
-![免费试用](C:\Users\admin\Desktop\javaboy\docs\服务器\白嫖\images\免费试用.png)
+![免费试用](.\images\免费试用.png)
 
 > 第九步：试用ECS创建成功
 
-![试用ECS创建成功](C:\Users\admin\Desktop\javaboy\docs\服务器\白嫖\images\试用ECS创建成功.png)
+![试用ECS创建成功](.\images\试用ECS创建成功.png)
 
 ## 使用说明
 
