@@ -6,21 +6,36 @@
     logo: '/logo.png',
 	nav: [
       { text: '首页', link: '/' },
-      { text: '快速开始', link: '/guide/' },
 	  {
-        text: '基础技术',
+        text: '技术栈',
+        items: [
+          { text: 'Spring', link: '/技术栈/Spring/' },
+          { text: 'SpringMVC', link: '/技术栈/SpringMVC/' },
+          { text: 'MyBatis', link: '/技术栈/MyBatis/' },
+          { text: 'MyBatisPlus', link: '/技术栈/MyBatisPlus/' },
+          { text: 'Swagger', link: '/技术栈/Swagger/' },
+          { text: 'Knife4j', link: '/技术栈/Knife4j/' },
+          { text: 'SpringBoot', link: '/技术栈/SpringBoot/' },
+          { text: 'Kafka', link: '/技术栈/Kafka/' },
+          { text: 'SpringCloud', link: '/技术栈/SpringCloud/' },
+		  { text: 'ZooKeeper', link: '/技术栈/ZooKeeper/' }
+        ]
+      },
+	  {
+        text: '数据库',
 		items: [
-		  { text: '数据库', items: [{ text:'MySQL', link: '/基础技术/数据库/MySQL/' },{ text: 'PostgreSQL', link: '/基础技术/数据库/PostgreSQL/' },{ text: 'MongoDB', link: '/基础技术/数据库/MongoDB/' }]},
-		  { text: '消息队列', items: [{ text:'Kafka', link: '/基础技术/消息队列/Kafka/' },{ text: 'Redis', link: '/基础技术/消息队列/Redis/' },{ text: 'Message Queue', link: '/基础技术/消息队列/Message Queue/' }]}
+		  { text: '关系型数据库', items: [{ text:'MySQL', link: '/数据库/关系型数据库/MySQL/' },{ text: 'PostgreSQL', link: '/数据库/关系型数据库/PostgreSQL/' }]},
+		  { text: '非关系型数据库', items: [{ text:'Redis', link: '/数据库/非关系型数据库/Redis/' },{ text: 'MongoDB', link: '/数据库/非关系型数据库/MongoDB/' }]}
 		]
       },
 	  {
-        text: '理论知识',
+        text: '服务器',
         items: [
-          { text: '算法数据结构', link: '/理论知识/算法数据结构/' }
-        ]
+          { text: '白嫖服务器', link: '/服务器/白嫖/' }
+		]
       },
-      { text: 'Github', link: 'https://github.com/ShenJinyong/javaboy' },
+	  { text: '关于我', link: '/关于我/' },
+      { text: 'Github', link: 'https://github.com/ShenJinyong/' }
     ]
   }
 }

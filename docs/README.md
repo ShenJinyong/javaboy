@@ -3,7 +3,7 @@ home: true
 heroText: javaboy
 tagline: 工作尚未有起色，离家又难以割舍，谈婚论嫁以至眼前，却还在路上寻找自己。
 actionText: 快速上手 →
-actionLink: /guide/
+actionLink: /关于我/
 features:
 - title: 简洁至上
   details: 以 Markdown 为中心的项目结构，以最少的配置帮助你专注于写作。
