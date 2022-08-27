@@ -31,7 +31,6 @@
 	  {
         text: '服务器',
         items: [
-          { text: 'Free', link: '/服务器/Free/' },
           { text: 'MySQL', link: '/服务器/MySQL/' },
           { text: 'JDK', link: '/服务器/JDK/' }
 		]

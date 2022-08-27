@@ -2,14 +2,12 @@
      <h1>沈金勇-Java开发工程师</h1>
  </center>
 
-
-
 ## 个人信息 
 
-* 性 别：男&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&ensp;年 龄：23 
-* 学 校：萍乡学院&emsp;&emsp;&emsp;&emsp;&emsp;&emsp; &emsp;&emsp; &emsp;专 业：软件工程 
-* 手 机：18365418110&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp; 邮 箱：438217638@qq.com  
-* 籍 贯：江西&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp; &emsp;&emsp; &emsp;&emsp;现 居 地：杭州
+* 性 别：男&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&ensp;&emsp;年 龄：25 
+* 学 校：萍乡学院&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&ensp;专 业：软件工程 
+* 手 机：18365418110&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&ensp;邮 箱：438217638@qq.com  
+* 籍 贯：江西&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp; &emsp;&emsp;&emsp;&emsp;&emsp;&ensp;现 居 地：杭州
 
 ## 专业技能
 

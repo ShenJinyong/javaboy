@@ -96,7 +96,7 @@ set global validate_password_length=1;
 ALTER USER 'root'@'localhost' IDENTIFIED BY 'new password';
 ```
 
-授权远程连接，填写真实密码或者ip，无效可删除`WITH GRANT OPTION`：
+授权远程连接，填写真实密码或者ip：
 
 ```sql
 --赋予任何主机访问权限：

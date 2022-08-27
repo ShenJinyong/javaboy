@@ -113,6 +113,34 @@ DO call my_procedure();
 
 ### MySQL架构篇
 
+MySQL逻辑架构：
+
+```mermaid
+graph LR
+	subgraph 客户端
+	end
+	subgraph MySQL服务
+		subgraph 连接管理
+		处理连接
+		end	
+		subgraph 解析与优化
+		查询缓存-->语法解析
+		语法解析-->查询优化
+		end	
+		subgraph 存储引擎
+		MyISAM
+		InnoDB
+		Memory
+		end	
+	end
+	subgraph 文件系统
+	end
+	客户端-->处理连接
+	处理连接-->查询缓存
+	查询优化-->InnoDB
+	InnoDB-->文件系统
+```
+
 ### 索引及调优篇
 
 ### MySQL事务篇
