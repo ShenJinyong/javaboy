@@ -31,7 +31,9 @@
 	  {
         text: '服务器',
         items: [
-          { text: '白嫖服务器', link: '/服务器/白嫖/' }
+          { text: 'Free', link: '/服务器/Free/' },
+          { text: 'MySQL', link: '/服务器/MySQL/' },
+          { text: 'JDK', link: '/服务器/JDK/' }
 		]
       },
 	  { text: '关于我', link: '/关于我/' },
