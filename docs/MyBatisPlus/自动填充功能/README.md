@@ -1,7 +1,5 @@
 # 自动填充功能
 
-官方文档：[自动填充功能 | MyBatis-Plus (baomidou.com)](https://baomidou.com/pages/4c6bcf/)
-
 ## 引用原因
 
 在阿里巴巴关于Java开发标准开发手册中提到，数据库中核心表的设计应该建立类似`gmt_create`字段标识创建时间，`gmt_modified`字段标识更新时间，这是一种规范。
