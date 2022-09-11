@@ -7,25 +7,12 @@
 	nav: [
       { text: '首页', link: '/' },
 	  {
-        text: '数据库',
+		text: 'MyBatisPlus',
 		items: [
-			{
-				text:'关系型数据库',link:'/数据库/关系型数据库/',
-				items:[
-					{ text:'写在前面',link:'/数据库/关系型数据库/' },
-					{ text: 'MySQL', link: '/数据库/关系型数据库/MySQL/' },
-					{ text: 'PostgreSQL', link: '/数据库/关系型数据库/PostgreSQL/' },
-				]
-			},
-			{
-				text:'非关系型数据库',
-				items:[
-					{ text: 'Redis', link: '/数据库/非关系型数据库/Redis/' },
-					{ text: 'MongoDB', link: '/数据库/非关系型数据库/MongoDB/' }
-				]
-			}
+			{ text: '自动填充功能', link: '/MyBatisPlus/自动填充功能/' }
 		]
-      }
+	  },
+	  { text: '关于我', link: '/About/' }
     ]
   }
 }
