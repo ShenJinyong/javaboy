@@ -1,0 +1,17 @@
+{
+  "name": "javaboy",
+  "version": "1.0.0",
+  "description": "javaboy的文档网站",
+  "main": "index.js",
+  "repository": "git@github.com:ShenJinyong/javaboy.git",
+  "author": "ShenJinyong <438217638@qq.com>",
+  "license": "MIT",
+  "devDependencies": {
+    "vitepress": "^1.0.0-alpha.15"
+  },
+  "scripts": {
+    "docs:dev": "vitepress dev docs",
+    "docs:build": "vitepress build docs",
+    "docs:serve": "vitepress serve docs"
+  }
+}
