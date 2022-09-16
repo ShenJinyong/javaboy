@@ -17,7 +17,17 @@ module.exports = {
     ],
     //导航栏
 	  nav: [
-      { text: '首页', link: '/' }
+      { text: '首页', link: '/' },
+      { text: '📖开发手册', link: '/开发手册/阿里巴巴-JAVA开发手册-泰山版' },
+      {
+        text: "📦数据库",
+        items: [
+          { text: "🐬 MySQL", link: "/Database/MySQL/MySQL" },
+          { text: "📦 PostgreSQL", link: "/Database/PostgreSQL/PostgreSQL" },
+          { text: "🍃 Redis", link: "/Database/Redis/Redis" },
+          { text: "🗄️ MongoDB", link: "/Database/MongoDB/MongoDB" }
+        ]
+      }
     ],
     //社交链接
     socialLinks: [
