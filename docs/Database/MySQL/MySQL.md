@@ -8,6 +8,8 @@
 
 课时：`5145`分钟
 
+课程资料：`链接: https://pan.baidu.com/s/1Y1q5ENfgAUmwUwVp0AXO5Q 提取码: 9jds`
+
 二刷狂神说：https://www.bilibili.com/video/BV1NJ411J79W
 
 课时：`715*2=1430`分钟

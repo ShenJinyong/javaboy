@@ -2,6 +2,8 @@
 
 javaboy的文档库
 
+开源不易，项目长期维护，欢迎star！
+
 ## 快速开始
 
 创建目录：`mkdir javaboy`
