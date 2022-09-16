@@ -1,1 +1,14 @@
 # MySQL
+
+官网地址：[MySQL](https://www.mysql.com/)
+
+大学课程：数据库概论
+
+一刷宋红康：https://www.bilibili.com/video/BV1iq4y1u7vj
+
+课时：`5145`分钟
+
+二刷狂神说：https://www.bilibili.com/video/BV1NJ411J79W
+
+课时：`715*2=1430`分钟
+
