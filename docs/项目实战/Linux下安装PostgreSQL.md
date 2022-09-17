@@ -270,3 +270,80 @@ psql:    \d table_name
 mysql:  describe table_name
 psql:    \d+ table_name
 ```
+
+## Ubuntu 安装 PostgreSQL
+
+Ubuntu 可以使用 apt-get 安装 PostgreSQL：
+
+```
+sudo apt-get update
+sudo apt-get install postgresql postgresql-client
+```
+
+安装完毕后，系统会创建一个数据库超级用户 postgres，密码为空。
+
+```
+#  sudo -i -u postgres
+```
+
+这时使用以下命令进入 postgres，输出以下信息，说明安装成功：
+
+```
+~$ psql
+psql (9.5.17)
+Type "help" for help.
+
+postgres=# 
+```
+
+输入以下命令退出 PostgreSQL 提示符：
+
+```
+\q
+```
+
+PostgreSQL 安装完成后默认是已经启动的，但是也可以通过下面的方式来手动启动服务。
+
+```
+sudo /etc/init.d/postgresql start   # 开启
+sudo /etc/init.d/postgresql stop    # 关闭
+sudo /etc/init.d/postgresql restart # 重启
+```
+
+### 4.2 配置远程连接
+
+修改postgresql.conf文件
+
+~~~shell
+vim /etc/postgresql/10/main/postgresql.conf
+
+# 将 #listen_addresses = 'localhost' 改为 listen_addresses = '*'
+~~~
+
+修改pg_hba.conf文件
+
+~~~shell
+vim /etc/postgresql/10/main/pg_hba.conf
+ 
+# IPv4 local connections:末尾添加内容
+# 注意！！！ 不要写md5 否则连接时会密码不正确
+host    all    all    0.0.0.0/0    trust
+~~~
+
+ 重启服务
+
+~~~shell
+/etc/init.d/postgresql restart
+~~~
+
+### 4.3 测试连接
+
+1. 打开dbDriver
+2. 创建PostgreSQL连接
+3. 输入远程主机ip
+4. 输入数据库postgres
+5. 输入用户名postgres
+6. 密码默认为空
+7. 测试连接
+
+> 注意：需要打开防火墙的安全组
