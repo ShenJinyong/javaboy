@@ -31,6 +31,7 @@ module.exports = {
               { text: "🐬 Linux下安装MySQL", link: "/运维类/Linux/Linux下安装MySQL" },
               { text: "🧶 Linux下安装PostgreSQL", link: "/运维类/Linux/Linux下安装PostgreSQL" },
               { text: "🧶 Linux下安装Tomcat", link: "/运维类/Linux/Linux下安装Tomcat" },
+              { text: "🧶 Linux下安装Nginx", link: "/运维类/Linux/Linux下安装Nginx" },
               { text: "🧶 Linux下安装Docker", link: "/运维类/Linux/Linux下安装Docker" },
               { text: "🧶 Linux下部署jar包", link: "/运维类/Linux/Linux下部署jar包" },
             ],
