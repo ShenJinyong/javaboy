@@ -1,6 +1,8 @@
 # Linux下安装PostgreSQL
 
-## 安装启动
+## Centos 7
+
+### 安装
 
 安装
 
@@ -42,9 +44,11 @@ systemctl status postgresql
 
 ![查看postgresql状态](.\images\查看postgresql状态.png)
 
-## 连接postgresql数据库
+### 连接
 
-想连接到数据库，需要切换到postgres用户（默认情况下，安装postgresql时会自动生成），使用psql连接到数据库中，在该用户下连接数据库，是不需要密码的。
+> 说明：
+>
+> 想连接到数据库，需要切换到postgres用户（默认情况下，安装postgresql时会自动生成），使用psql连接到数据库中，在该用户下连接数据库，是不需要密码的。
 
 查看生成的用户
 
@@ -86,7 +90,7 @@ psql
 
 ![postgresql退出数据库](.\images\postgresql退出数据库.png)
 
-## postgresql的简单配置
+### 配置
 
 yum安装时路径
 
@@ -169,7 +173,7 @@ vim /var/lib/pgsql/data/pg_hba.conf
 
 在最后一行添加支持远程登录
 
-```conf
+```
 host	all		all		0.0.0.0/0 		md5
 ```
 
@@ -271,7 +275,9 @@ mysql:  describe table_name
 psql:    \d+ table_name
 ```
 
-## Ubuntu 安装 PostgreSQL
+## Ubuntu 18
+
+### 安装
 
 Ubuntu 可以使用 apt-get 安装 PostgreSQL：
 
@@ -310,7 +316,7 @@ sudo /etc/init.d/postgresql stop    # 关闭
 sudo /etc/init.d/postgresql restart # 重启
 ```
 
-### 4.2 配置远程连接
+### 配置
 
 修改postgresql.conf文件
 
@@ -336,7 +342,7 @@ host    all    all    0.0.0.0/0    trust
 /etc/init.d/postgresql restart
 ~~~
 
-### 4.3 测试连接
+### 测试
 
 1. 打开dbDriver
 2. 创建PostgreSQL连接

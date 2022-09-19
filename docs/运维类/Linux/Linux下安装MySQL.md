@@ -10,11 +10,17 @@
 
 ## 1.安装
 
+安装wegt:
+
+![安装wegt](.\images\安装wegt.png)
+
 下载并安装MySQL官方的`yum repository`：
 
 ```sh
 wget -i -c http://dev.mysql.com/get/mysql57-community-release-el7-10.noarch.rpm
 ```
+
+![下载官方yum源](.\images\下载官方yum源.png)
 
 使用yum安装：
 
@@ -22,17 +28,23 @@ wget -i -c http://dev.mysql.com/get/mysql57-community-release-el7-10.noarch.rpm
 yum -y install mysql57-community-release-el7-10.noarch.rpm
 ```
 
+![yum安装mysql](.\images\yum安装mysql.png)
+
 更新MySQL GPG密钥：
 
 ```sh
-yum -y install mysql-community-server
+rpm --import https://repo.mysql.com/RPM-GPG-KEY-mysql-2022
 ```
+
+![更新GPG密钥](.\images\更新GPG密钥.png)
 
 安装MySQL的服务器：
 
 ```sh
 yum -y install mysql-community-server
 ```
+
+![安装MySQL](.\images\安装MySQL.png)
 
 ## 2.配置
 
@@ -41,6 +53,8 @@ yum -y install mysql-community-server
 ```sh
 systemctl status mysqld.service
 ```
+
+![查看MySQL状态](.\images\查看MySQL状态.png)
 
 启动MySQL服务：
 
@@ -51,11 +65,15 @@ systemctl start mysqld.service
 systemctl restart mysqld.service
 ```
 
+![启动MySQL服务](.\images\启动MySQL服务.png)
+
 关闭MySQL服务：
 
 ```sh
 systemctl stop mysqld.service
 ```
+
+![关闭MySQL服务](.\images\关闭MySQL服务.png)
 
 查看是否开机启动：
 
@@ -63,7 +81,7 @@ systemctl stop mysqld.service
 systemctl list-unit-files|grep mysqld.service
 ```
 
----
+![查看MySQL开机启动状态](.\images\查看MySQL开机启动状态.png)
 
 查看一次性密码：
 
@@ -71,17 +89,15 @@ systemctl list-unit-files|grep mysqld.service
 grep "password" /var/log/mysqld.log
 ```
 
+![查看MySQL一次性密码](.\images\查看MySQL一次性密码.png)
+
 进入数据库：
 
 ```sh
 mysql -uroot -p
 ```
 
-查看密码策略：
-
-```sql
-SHOW VARIABLES LIKE 'validate_password%';
-```
+![进入数据库](.\images\进入数据库.png)
 
 设置密码策略：
 
@@ -90,20 +106,28 @@ set global validate_password_policy=0;
 set global validate_password_length=1;
 ```
 
+![设置密码策略](.\images\设置密码策略.png)
+
 修改密码，填写真实密码：
 
 ```sql
 ALTER USER 'root'@'localhost' IDENTIFIED BY 'new password';
+# ALTER USER 'root'@'localhost' IDENTIFIED BY '123456';
 ```
+
+![修改密码](.\images\修改密码.png)
 
 授权远程连接，填写真实密码或者ip：
 
 ```sql
 --赋予任何主机访问权限：
 GRANT ALL PRIVILEGES ON *.* TO 'root'@'%' IDENTIFIED BY 'password' WITH GRANT OPTION;
+# GRANT ALL PRIVILEGES ON *.* TO 'root'@'%' IDENTIFIED BY '123456' WITH GRANT OPTION;
 --允许指定主机(IP地址)访问权限：
 GRANT ALL PRIVILEGES ON *.* TO 'myuser'@'192.168.1.3' IDENTIFIED BY 'root' WITH GRANT OPTION;
 ```
+
+![授权远程登录](.\images\授权远程登录.png)
 
 刷新权限：
 
@@ -111,16 +135,35 @@ GRANT ALL PRIVILEGES ON *.* TO 'myuser'@'192.168.1.3' IDENTIFIED BY 'root' WITH 
 FLUSH PRIVILEGES;
 ```
 
+![刷新权限](.\images\刷新权限.png)
+
+查看密码策略：
+
+```sql
+SHOW VARIABLES LIKE 'validate_password%';
+```
+
+![查看密码策略](.\images\查看密码策略.png)
+
 查看默认使用的字符集：
 
 ```sql
 show variables like 'character%';
 ```
 
-修改默认的比较规则和字符集：
+![查看字符集](.\images\查看字符集.png)
+
+编辑配置文件
 
 ```sh
 vim /etc/my.cnf
+```
+
+![编辑MySQL配置文件](.\images\编辑MySQL配置文件.png)
+
+修改默认的比较规则和字符集：
+
+```sh
 [client]
 # 比较规则
 default_character_set=utf8
@@ -129,11 +172,15 @@ default_character_set=utf8
 character_set_server=utf8
 ```
 
+![修改比较规则和字符集](.\images\修改比较规则和字符集.png)
+
 退出数据库：
 
 ```sql
 quit;
 ```
+
+![退出数据库](.\images\退出数据库.png)
 
 重启MySQL服务:
 
@@ -141,7 +188,7 @@ quit;
 systemctl restart mysqld.service;
 ```
 
----
+![重启MySQL](.\images\重启MySQL.png)
 
 卸载`yum repository`：
 
@@ -149,19 +196,23 @@ systemctl restart mysqld.service;
 yum -y remove mysql57-community-release-el7-10.noarch
 ```
 
+![卸载yum源仓库](.\images\卸载yum源仓库.png)
+
 删除`yum repository`：
 
 ```sh
 rm -rf mysql57-community-release-el7-10.noarch.rpm
 ```
 
----
+![删除yum源包](.\images\删除yum源包.png)
 
 查看防火墙状态：
 
 ```sh
 systemctl status firewalld.service
 ```
+
+![查看防火墙状态](.\images\查看防火墙状态.png)
 
 打开防火墙：
 
@@ -179,8 +230,6 @@ systemctl stop firewalld.service
 # 开机时关闭防火墙
 systemctl disable firewalld.service
 ```
-
----
 
 阿里云配置安全组：
 
@@ -207,6 +256,8 @@ systemctl stop mysqld.service
 ```sh
 rpm -qa|grep -i mysql
 ```
+
+![查看MySQL的安装状态](.\images\查看MySQL的安装状态.png)
 
 开始卸载：
 

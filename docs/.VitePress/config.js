@@ -19,16 +19,27 @@ module.exports = {
 	  nav: [
       { text: '首页', link: '/' },
       { text: '📖开发手册', link: '/开发手册/阿里巴巴-JAVA开发手册-泰山版' },
-      { text: '📖面试宝典', link: '/面试宝典/Java面试' },
-      {
-        text: "📦项目实战",
+	  {
+        text: "📦运维类",
         items: [
-          { text: "📦 白嫖阿里云服务器", link: "/项目实战/白嫖阿里云服务器" },
-          { text: "📦 Linux安装JDK", link: "/项目实战/Linux安装JDK" },
-          { text: "📦 Linux安装MySQL", link: "/项目实战/Linux安装Redis" },
-          { text: "📦 Linux安装PostgreSQL", link: "/项目实战/Linux安装PostgreSQL" },
+          {
+            text:"Linux",
+            items: [
+              { text: "🏹 Linux服务器白嫖", link: "/运维类/Linux/Linux服务器白嫖" },
+              { text: '🗂️ Linux下安装JDK', link: '/运维类/Linux/Linux下安装JDK' },
+              { text: "🐬 Linux下安装MySQL", link: "/运维类/Linux/Linux下安装MySQL" },
+              { text: "🧶 Linux下安装PostgreSQL", link: "/运维类/Linux/Linux下安装PostgreSQL" },
+            ],
+          },
+          {
+            text:"Git",
+            items: [
+              { text: "🏹 Git", link: "/运维类/Git/Git实操" },
+            ],
+          },
         ]
       },
+      { text: '📖面试宝典', link: '/面试宝典/Java面试' },
       {
         text: "📦数据库",
         items: [

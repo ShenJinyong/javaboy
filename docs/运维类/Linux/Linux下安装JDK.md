@@ -1,6 +1,8 @@
-# Linux安装JDK
+# Linux下安装JDK
 
-## 查看系统是否已有自带的jdk
+## 检查
+
+查看系统是否已有自带的jdk
 
 ```sh
 rpm -qa |grep java
@@ -18,7 +20,9 @@ rpm -qa |grep gcj
 rpm -qa | grep java | xargs rpm -e --nodeps
 ```
 
-## 列出所有可安装的rpm软件包
+## 查看
+
+列出所有可安装的rpm软件包
 
 ```sh
 yum list java-1.8*
@@ -26,7 +30,7 @@ yum list java-1.8*
 
 ![列出所有可安装的rpm软件包](.\images\列出所有可安装的rpm软件包.png)
 
-## 安装jdk8
+## 安装
 
 ```sh
 yum install java-1.8.0-openjdk* -y
