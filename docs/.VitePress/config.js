@@ -25,16 +25,21 @@ module.exports = {
           {
             text:"Linux",
             items: [
+              { text: "🏹 Linux基础", link: "/运维类/Linux/Linux基础" },
               { text: "🏹 Linux服务器白嫖", link: "/运维类/Linux/Linux服务器白嫖" },
               { text: '🗂️ Linux下安装JDK', link: '/运维类/Linux/Linux下安装JDK' },
               { text: "🐬 Linux下安装MySQL", link: "/运维类/Linux/Linux下安装MySQL" },
               { text: "🧶 Linux下安装PostgreSQL", link: "/运维类/Linux/Linux下安装PostgreSQL" },
+              { text: "🧶 Linux下安装Tomcat", link: "/运维类/Linux/Linux下安装Tomcat" },
+              { text: "🧶 Linux下安装Docker", link: "/运维类/Linux/Linux下安装Docker" },
+              { text: "🧶 Linux下部署jar包", link: "/运维类/Linux/Linux下部署jar包" },
             ],
           },
           {
             text:"Git",
             items: [
-              { text: "🏹 Git", link: "/运维类/Git/Git实操" },
+              { text: "🏹 Git基础", link: "/运维类/Git/Git基础" },
+              { text: "🏹 Git中解决commit大文件", link: "/运维类/Git/Git中解决commit大文件" },
             ],
           },
         ]

@@ -23,4 +23,9 @@ VuePress 为每个页面预渲染生成静态的 HTML，同时在页面被加载
 ## 在线工具
 
 PDF转MarkDown：`https://pdf2md.morethan.io/`
+
 程序员盒子：`https://www.coderutil.com/`
+
+考拉软件：`https://www.rjctx.com/zyrj/adobe/ps`
+
+牛逼网站：`https://www.nbwz.com/dianying/`
