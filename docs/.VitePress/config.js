@@ -18,6 +18,15 @@ module.exports = {
     //导航栏
 	  nav: [
       { text: '首页', link: '/' },
+      {
+        text: "📦数据库",
+        items: [
+          { text: "🐬 MySQL", link: "/数据库/MySQL/MySQL" },
+          { text: "📦 PostgreSQL", link: "/数据库/PostgreSQL/PostgreSQL" },
+          { text: "🍃 Redis", link: "/数据库/Redis/Redis" },
+          { text: "🗄️ MongoDB", link: "/数据库/MongoDB/MongoDB" }
+        ]
+      },
 	    {
         text: "📦运维类",
         items: [
@@ -50,16 +59,7 @@ module.exports = {
           },
         ]
       },
-      {
-        text: "📦数据库",
-        items: [
-          { text: "🐬 MySQL", link: "/数据库/MySQL/MySQL" },
-          { text: "📦 PostgreSQL", link: "/数据库/PostgreSQL/PostgreSQL" },
-          { text: "🍃 Redis", link: "/数据库/Redis/Redis" },
-          { text: "🗄️ MongoDB", link: "/数据库/MongoDB/MongoDB" }
-        ]
-      },
-      { text: '📖我的', link: '/我的简历/简历' },
+      { text: '📖简历', link: '/简历/简历' },
       // { text: '📖面试宝典', link: '/面试宝典/Java面试' },
       // {
       //   text: "💻日志框架",
