@@ -173,7 +173,7 @@ AsyncLogger才是log4j2 的重头戏，也是官方推荐的异步方式。它�
 
 - 全局异步就是，所有的日志都异步的记录，在配置文件上不用做任何改动，只需要添加一个log4j2.component.properties 配置；
 
-  ```properties
+  ```
   Log4jContextSelector=org.apache.logging.log4j.core.async.AsyncLoggerContextSelector
   ```
 

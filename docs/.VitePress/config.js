@@ -18,7 +18,13 @@ module.exports = {
     //导航栏
 	  nav: [
       { text: '首页', link: '/' },
-      { text: '项目实战', link: '/项目实战/项目实战' },
+      { text: '项目实战', 
+        items: [
+            { text: "📦 实战项目", link: "/项目实战/实战项目" },
+            { text: "🍃 参数校验", link: "/项目实战/参数校验" },
+            { text: "🍃 实体类", link: "/项目实战/实体类" },
+          ]
+      },
       {
         text: "📦数据库",
         items: [
@@ -42,14 +48,14 @@ module.exports = {
               { text: "🧶 Linux下安装Tomcat", link: "/运维类/Linux/Linux下安装Tomcat" },
               { text: "🧶 Linux下安装Nginx", link: "/运维类/Linux/Linux下安装Nginx" },
               { text: "🧶 Linux下安装Docker", link: "/运维类/Linux/Linux下安装Docker" },
-              { text: "🧶 Linux下部署jar包", link: "/运维类/Linux/Linux下部署jar包" },
+              { text: "🧶 Linux下部署jar包", link: "/运维类/Linux/Linux下部署jar包" }
             ],
           },
           {
             text:"Git",
             items: [
               { text: "🏹 Git基础", link: "/运维类/Git/Git基础" },
-              { text: "🏹 Git中解决commit大文件", link: "/运维类/Git/Git中解决commit大文件" },
+              { text: "🏹 Git中解决commit大文件", link: "/运维类/Git/Git中解决commit大文件" }
             ],
           },
           {

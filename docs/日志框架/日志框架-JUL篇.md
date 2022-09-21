@@ -215,7 +215,7 @@ public void testProperties() throws Exception {
 
 **配置文件**
 
-```properties
+```
 ## RootLogger使用的处理器（获取时设置）
 handlers= java.util.logging.ConsoleHandler
 # RootLogger日志等级

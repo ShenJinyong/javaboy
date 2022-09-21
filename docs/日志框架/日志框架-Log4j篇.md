@@ -32,7 +32,6 @@ pom.xml
     <version>4.12</version>
     </dependency>
 </dependencies>
-
 ```
 
 ### 1.3Java代码
@@ -167,7 +166,7 @@ Test.main(Test.java:10)
 
 ### 4.1 log4j.properties
 
-```properties
+```
 #指定日志的输出级别与输出端
 log4j.rootLogger=INFO,Console
 # 控制台输出配置
@@ -221,7 +220,7 @@ PRIMARY KEY (`log_id`)
 
 ### 5.1 log4j.properties
 
-```properties
+```
 # RootLogger配置
 log4j.rootLogger = trace,console
 # 自定义Logger
