@@ -7,6 +7,9 @@ hero:
   tagline: 您好 Java 男孩！欢迎来到我的博客~工作尚未有起色 离家又难以割舍，谈婚论嫁以至眼前，却还在路上寻找自己!
   actions:
     - theme: alt
+      text: 🐤 开发手册
+      link: http://localhost:5173/javaboy/开发手册/阿里巴巴-JAVA开发手册-泰山版.pdf
+    - theme: alt
       text: 🐤 PDF转MarkDown
       link: https://pdf2md.morethan.io/
     - theme: alt
