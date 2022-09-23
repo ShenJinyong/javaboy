@@ -120,7 +120,7 @@ public class MybatisUtils {
       }
   }
 
-   // 获取SqlSession连接
+   // 获取SqlSession连接,默认false事务不自动提交,事务自动提交sqlSessionFactory.openSession(true)
    public static SqlSession getSession(){
        return sqlSessionFactory.openSession();
   }
@@ -197,7 +197,7 @@ public class MyTest {
        SqlSession session = MybatisUtils.getSession();
        // 查询方法一：session.selectList
        List<User> users1 = session.selectList("com.kuang.mapper.UserMapper.selectUser");
-       // 查询方法二：session.getMapper
+       // 查询方法二：session.getMapper,本质上利用了jvm的动态代理机制
        UserMapper mapper = session.getMapper(UserMapper.class);
        List<User> users2 = mapper.selectUser();
 	   // 遍历
@@ -670,3 +670,432 @@ public class User {
 </settings>
 ```
 
+## ResultMap
+
+**要解决的问题：属性名和字段名不一致**
+
+> 解决方案
+
+方案一：为列名指定别名 , 别名和java实体类的属性名一致 。
+
+自动映射：
+
+ResultMap 的设计思想是，对于简单的语句根本不需要配置显式的结果映射，而对于复杂一点的语句只需要描述它们的关系就行了。
+
+```xml
+<select id="selectUserById" resultType="User">
+  select id , name , pwd as password from user where id = #{id}
+</select>
+```
+
+方案二：使用结果集映射->ResultMap 【推荐】
+
+手动映射：
+
+如果世界总是这么简单就好了。但是肯定不是的，数据库中，存在一对多，多对一的情况，会使用到一些高级的结果集映射！
+
+```xml
+<resultMap id="UserMap" type="User">
+   <!-- id为主键 -->
+   <id column="id" property="id"/>
+   <!-- column是数据库表的列名 , property是对应实体类的属性名 -->
+   <result column="name" property="name"/>
+   <result column="pwd" property="password"/>
+</resultMap>
+
+<select id="selectUserById" resultMap="UserMap">
+  select id , name , pwd from user where id = #{id}
+</select>
+```
+
+## 执行流程
+
+- Resource加载全局配置文件
+- 实例化SqlSessionBuilder构建器
+- 由XMLConfigBuilder解析配置文件流
+- 把配置信息存放到Configuration中
+- 实例化SqlSessionFactory实现类DefaultSqlSessionFactory
+- 【事务】由TransactionFactory创建一个Transaction事务对象
+- 创建执行器Excutor
+- 创建SqlSession接口实现类DefaultSqlSession
+- 实现CRUD
+- 结果
+  - 执行成功，提交事务
+  - 执行失败，回滚事务
+
+- 关闭
+
+## 高级映射
+
+**关联-association**：用于一对一和多对一关系
+
+**集合-collection**：collection是用于一对多的关系
+
+映射处理：
+
+- 按照查询进行嵌套处理就像SQL中的子查询
+
+- 按照结果进行嵌套处理就像SQL中的联表查询
+
+---
+
+表结构和数据
+
+```sql
+CREATE TABLE `teacher` (
+`id` INT(10) NOT NULL,
+`name` VARCHAR(30) DEFAULT NULL,
+PRIMARY KEY (`id`)
+) ENGINE=INNODB DEFAULT CHARSET=utf8
+
+INSERT INTO teacher(`id`, `name`) VALUES (1, 'javaboy');
+
+CREATE TABLE `student` (
+`id` INT(10) NOT NULL,
+`name` VARCHAR(30) DEFAULT NULL,
+`tid` INT(10) DEFAULT NULL,
+PRIMARY KEY (`id`),
+KEY `fktid` (`tid`),
+CONSTRAINT `fktid` FOREIGN KEY (`tid`) REFERENCES `teacher` (`id`)
+) ENGINE=INNODB DEFAULT CHARSET=utf8
+
+
+INSERT INTO `student` (`id`, `name`, `tid`) VALUES ('1', '小明', '1');
+INSERT INTO `student` (`id`, `name`, `tid`) VALUES ('2', '小红', '1');
+INSERT INTO `student` (`id`, `name`, `tid`) VALUES ('3', '小张', '1');
+INSERT INTO `student` (`id`, `name`, `tid`) VALUES ('4', '小李', '1');
+INSERT INTO `student` (`id`, `name`, `tid`) VALUES ('5', '小王', '1');
+```
+
+---
+
+**多个学生对应一个老师**
+
+> 按查询嵌套处理
+
+```xml
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+       PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+       "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.kuang.mapper.StudentMapper">
+
+   <resultMap id="StudentTeacher" type="Student">
+       <!--association关联属性 property属性名 javaType属性类型 column在多的一方的表中的列名-->
+       <association property="teacher"  column="tid" javaType="Teacher" select="getTeacher"/>
+   </resultMap>
+   <select id="getStudents" resultMap="StudentTeacher">
+    select * from student
+   </select>
+   <select id="getTeacher" resultType="teacher">
+      select * from teacher where id = #{id}
+   </select>
+
+</mapper>
+```
+
+association中column多参数配置：`column="{key=value,key=value}"`。
+
+举个栗子：设值`column="{id=tid,name=tid}"`,取值`#{id},#{name}`
+
+> 按结果嵌套处理
+
+```xml
+<select id="getStudents2" resultMap="StudentTeacher2" >
+  select s.id sid, s.name sname , t.name tname
+  from student s,teacher t
+  where s.tid = t.id
+</select>
+
+<resultMap id="StudentTeacher2" type="Student">
+   <id property="id" column="sid"/>
+   <result property="name" column="sname"/>
+   <!--关联对象property 关联对象在Student实体类中的属性-->
+   <association property="teacher" javaType="Teacher">
+       <result property="name" column="tname"/>
+   </association>
+</resultMap>
+```
+
+**一个老师对应多个学生**
+
+>按结果嵌套处理
+
+```xml
+<mapper namespace="com.kuang.mapper.TeacherMapper">
+
+   <select id="getTeacher" resultMap="TeacherStudent">
+      select s.id sid, s.name sname , t.name tname, t.id tid
+      from student s,teacher t
+      where s.tid = t.id and t.id=#{id}
+   </select>
+
+   <resultMap id="TeacherStudent" type="Teacher">
+       <result  property="name" column="tname"/>
+       <collection property="students" ofType="Student">
+           <result property="id" column="sid" />
+           <result property="name" column="sname" />
+           <result property="tid" column="tid" />
+       </collection>
+   </resultMap>
+</mapper>
+```
+
+## 动态SQL
+
+> if 语句
+
+```xml
+<select id="queryBlogIf" parameterType="map" resultType="blog">
+  select * from blog where
+   <if test="title != null">
+      title = #{title}
+   </if>
+   <if test="author != null">
+      and author = #{author}
+   </if>
+</select>
+```
+
+> Where
+
+```xml
+<select id="queryBlogIf" parameterType="map" resultType="blog">
+  select * from blog
+   <where>
+       <if test="title != null">
+          title = #{title}
+       </if>
+       <if test="author != null">
+          and author = #{author}
+       </if>
+   </where>
+</select>
+```
+
+> Set
+
+```xml
+<!--注意set是用的逗号隔开-->
+<update id="updateBlog" parameterType="map">
+  update blog
+     <set>
+         <if test="title != null">
+            title = #{title},
+         </if>
+         <if test="author != null">
+            author = #{author}
+         </if>
+     </set>
+  where id = #{id};
+</update>
+```
+
+> choose
+
+```xml
+<select id="queryBlogChoose" parameterType="map" resultType="blog">
+  select * from blog
+   <where>
+       <choose>
+           <when test="title != null">
+                title = #{title}
+           </when>
+           <when test="author != null">
+              and author = #{author}
+           </when>
+           <otherwise>
+              and views = #{views}
+           </otherwise>
+       </choose>
+   </where>
+</select>
+```
+
+> SQL片段
+
+注意：
+
+- 最好基于 单表来定义 sql 片段，提高片段的可重用性
+
+- 在 sql 片段中不要包括 where
+
+```xml
+<sql id="if-title-author">
+   <if test="title != null">
+      title = #{title}
+   </if>
+   <if test="author != null">
+      and author = #{author}
+   </if>
+</sql>
+
+<select id="queryBlogIf" parameterType="map" resultType="blog">
+  select * from blog
+   <where>
+       <!-- 引用 sql 片段，如果refid 指定的不在本文件中，那么需要在前面加上 namespace -->
+       <include refid="if-title-author"></include>
+       <!-- 在这里还可以引用其他的 sql 片段 -->
+   </where>
+</select>
+```
+
+> Foreach
+
+```xml
+<select id="queryBlogForeach" parameterType="map" resultType="blog">
+  select * from blog
+   <where>
+       <!--
+       collection:指定输入对象中的集合属性
+       item:每次遍历生成的对象
+       open:开始遍历时的拼接字符串
+       close:结束时拼接的字符串
+       separator:遍历对象之间需要拼接的字符串
+       select * from blog where 1=1 and (id=1 or id=2 or id=3)
+     -->
+       <foreach collection="ids"  item="id" open="and (" close=")" separator="or">
+          id=#{id}
+       </foreach>
+   </where>
+</select>
+```
+
+## 缓存
+
+> Mybatis缓存
+
+- MyBatis包含一个非常强大的查询缓存特性，它可以非常方便地定制和配置缓存。缓存可以极大的提升查询效率。
+- MyBatis系统中默认定义了两级缓存：**一级缓存**和**二级缓存**
+  - 默认情况下，只有一级缓存开启。（SqlSession级别的缓存，也称为本地缓存）
+  - 二级缓存需要手动开启和配置，它是基于namespace级别的缓存。
+  - 为了提高扩展性，MyBatis定义了缓存接口Cache。我们可以通过实现Cache接口来自定义二级缓存
+
+> 一级缓存
+
+一级缓存也叫本地缓存，与数据库同一次会话期间查询到的数据会放在本地缓存中。**一级缓存就是一个map！**
+
+> 一级缓存失效的四种情况
+
+一级缓存是SqlSession级别的缓存，是一直开启的，我们关闭不了它!
+
+- sqlSession不同,每个sqlSession中的缓存相互独立
+- sqlSession相同，查询条件不同
+- sqlSession相同，两次查询之间执行了增删改操作！
+- sqlSession相同，手动清除一级缓存`session.clearCache();`
+
+> 二级缓存
+
+二级缓存也叫全局缓存，一级缓存作用域太低了，所以诞生了二级缓存。
+
+它基于namespace级别的缓存，一个名称空间，对应一个二级缓存。
+
+工作机制：
+
+- 一个会话查询一条数据，这个数据就会被放在当前会话的一级缓存中；
+
+- 如果当前会话关闭了，这个会话对应的一级缓存就没了；但是我们想要的是，会话关闭了，一级缓存中的数据被保存到二级缓存中；
+- 新的会话查询信息，就可以从二级缓存中获取内容；
+- 不同的mapper查出的数据会放在自己对应的缓存（map）中；
+
+> 使用步骤
+
+- 开启全局缓存 【mybatis-config.xml】
+
+  ```xml
+  <setting name="cacheEnabled" value="true"/>
+  ```
+
+- 去每个mapper.xml中配置使用二级缓存，这个配置非常简单【xxxMapper.xml】
+
+  ```xml
+  <cache eviction="FIFO" flushInterval="60000" size="512" readOnly="true"/>
+  ```
+
+说明：
+
+- 创建了一个 FIFO 缓存，
+
+- 每隔 60 秒刷新，
+
+- 最多可以存储结果对象或列表的 512 个引用，
+
+- 返回的对象被认为是只读的，因此对它们进行修改可能会在不同线程中的调用者产生冲突
+
+>结论
+
+- 只要开启了二级缓存，我们在同一个Mapper中的查询，可以在二级缓存中拿到数据
+- 查出的数据都会被默认先放在一级缓存中
+- 只有会话提交或者关闭以后，一级缓存中的数据才会转到二级缓存中
+
+> EhCache
+
+Ehcache是一种广泛使用的java分布式缓存，用于通用缓存，第三方缓存。
+
+**引入依赖**
+
+```xml
+<!-- https://mvnrepository.com/artifact/org.mybatis.caches/mybatis-ehcache -->
+<dependency>
+   <groupId>org.mybatis.caches</groupId>
+   <artifactId>mybatis-ehcache</artifactId>
+   <version>1.1.0</version>
+</dependency>
+```
+
+**在mapper.xml中使用对应的缓存**
+
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<ehcache xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:noNamespaceSchemaLocation="http://ehcache.org/ehcache.xsd"
+        updateCheck="false">
+   <!--
+      diskStore：为缓存路径，ehcache分为内存和磁盘两级，此属性定义磁盘的缓存位置。参数解释如下：
+      user.home – 用户主目录
+      user.dir – 用户当前工作目录
+      java.io.tmpdir – 默认临时文件路径
+    -->
+   <diskStore path="./tmpdir/Tmp_EhCache"/>
+   
+   <!-- defaultCache：默认缓存策略，当ehcache找不到定义的缓存时，则使用这个缓存策略。只能定义一个。-->
+   <defaultCache
+           eternal="false"
+           maxElementsInMemory="10000"
+           overflowToDisk="false"
+           diskPersistent="false"
+           timeToIdleSeconds="1800"
+           timeToLiveSeconds="259200"
+           memoryStoreEvictionPolicy="LRU"/>
+
+   <cache
+           name="cloud_user"
+           eternal="false"
+           maxElementsInMemory="5000"
+           overflowToDisk="false"
+           diskPersistent="false"
+           timeToIdleSeconds="1800"
+           timeToLiveSeconds="1800"
+           memoryStoreEvictionPolicy="LRU"/>
+
+</ehcache>
+```
+
+参数说明：
+
+- name:缓存名称
+- maxElementsInMemory:缓存最大数目
+- maxElementsOnDisk：硬盘最大缓存个数。
+- eternal:对象是否永久有效，一但设置了，timeout将不起作用。
+- overflowToDisk:是否保存到磁盘，当系统当机时
+- timeToIdleSeconds:设置对象在失效前的允许闲置时间（单位：秒）。仅当eternal=false对象不是永久有效时使用，可选属性，默认值是0，也就是可闲置时间无穷大。
+- timeToLiveSeconds:设置对象在失效前允许存活时间（单位：秒）。最大时间介于创建时间和失效时间之间。仅当eternal=false对象不是永久有效时使用，默认是0.，也就是对象存活时间无穷大。
+- diskPersistent：是否缓存虚拟机重启期数据 Whether the disk store persists between restarts of the Virtual Machine. The default value is false。
+- diskSpoolBufferSizeMB：这个参数设置DiskStore（磁盘缓存）的缓存区大小。默认是30MB。每个Cache都应该有自己的一个缓冲区。
+- diskExpiryThreadIntervalSeconds：磁盘失效线程运行时间间隔，默认是120秒。
+- memoryStoreEvictionPolicy：当达到maxElementsInMemory限制时，Ehcache将会根据指定的策略去清理内存。默认策略是LRU（最近最少使用）。你可以设置为FIFO（先进先出）或是LFU（较少使用）。
+- clearOnFlush：内存数量最大时是否清除。
+- memoryStoreEvictionPolicy:可选策略有：LRU（最近最少使用，默认策略）、FIFO（先进先出）、LFU（最少访问次数）。
+  - FIFO，first in first out，这个是大家最熟的，先进先出。
+  - LFU， Less Frequently Used，就是上面例子中使用的策略，直白一点就是讲一直以来最少被使用的。如上面所讲，缓存的元素有一个hit属性，hit值最小的将会被清出缓存。
+  - LRU，Least Recently Used，最近最少使用的，缓存的元素有一个时间戳，当缓存容量满了，而又需要腾出地方来缓存新的元素的时候，那么现有缓存元素中时间戳离当前时间最远的元素将被清出缓存。
