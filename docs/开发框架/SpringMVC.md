@@ -141,7 +141,7 @@ public class HelloServlet extends HttpServlet {
 
 > 编写Hello.jsp，在WEB-INF目录下新建一个jsp的文件夹，新建hello.jsp
 
-```jsp
+```
 <%@ page contentType="text/html;charset=UTF-8" language="java" %>
 <html>
 <head>
@@ -356,7 +356,7 @@ public class HelloController implements Controller {
 
 > 写要跳转的jsp页面，显示ModelandView存放的数据，以及我们的正常页面
 
-```jsp
+```
 <%@ page contentType="text/html;charset=UTF-8" language="java" %>
 <html>
     <head>   
@@ -368,7 +368,6 @@ public class HelloController implements Controller {
 
 > 配置Tomcat 启动测试！
 >
-> http://localhost:8080/hello
 
 ### 注解版
 
@@ -463,7 +462,7 @@ public class HelloController {
 
 > 创建视图层
 
-```jsp
+```
 <%@ page contentType="text/html;charset=UTF-8" language="java" %>
 <html>
     <head>   
@@ -481,7 +480,6 @@ public class HelloController {
 
 > 配置Tomcat 启动测试！
 >
-> http://localhost:8080/HelloController/hello
 
 **小结**
 
