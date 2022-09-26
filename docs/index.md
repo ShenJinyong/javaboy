@@ -4,7 +4,7 @@ layout: home
 
 hero:
   name:  🐤Hello JavaBoy
-  tagline: 您好 Java 男孩！欢迎来到我的博客~工作尚未有起色 离家又难以割舍，谈婚论嫁以至眼前，却还在路上寻找自己!
+  tagline: 您好 Java 男孩！欢迎来到我的博客~
   actions:
     - theme: alt
       text: 🐤 开发手册

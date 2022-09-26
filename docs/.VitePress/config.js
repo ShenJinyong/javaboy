@@ -20,21 +20,27 @@ module.exports = {
       { text: '首页', link: '/' },
       { text: '开发框架', 
         items: [
-          { text: "📦 Spring", link: "/开发框架/Spring" },
-          { text: "📦 SpringMVC", link: "/开发框架/SpringMVC" },
-          { text: "📦 MyBatis", link: "/开发框架/MyBatis" },
-          { text: "📦 MyBatisPlus", link: "/开发框架/MyBatisPlus" },
-          { text: "📦 SSM", link: "/开发框架/SSM" },
+          { text: "🍃 Spring", link: "/开发框架/Spring" },
+          { text: "🍃 SpringMVC", link: "/开发框架/SpringMVC" },
+          { text: "🐤 MyBatis", link: "/开发框架/MyBatis" },
+          { text: "🐤 MyBatisPlus", link: "/开发框架/MyBatisPlus" },
+          { text: "🏯 SSM", link: "/开发框架/SSM" },
           { text: "📦 SpringBoot", link: "/开发框架/SpringBoot" },
         ]
       },
       {
-        text: "📦数据库",
+        text: "🗄️数据库",
         items: [
           { text: "🐬 MySQL", link: "/数据库/MySQL/MySQL" },
-          { text: "📦 PostgreSQL", link: "/数据库/PostgreSQL/PostgreSQL" },
-          { text: "🍃 Redis", link: "/数据库/Redis/Redis" },
-          { text: "🗄️ MongoDB", link: "/数据库/MongoDB/MongoDB" }
+          { text: "🐾 PostgreSQL", link: "/数据库/PostgreSQL/PostgreSQL" },
+          { text: "🍂 Redis", link: "/数据库/Redis/Redis" },
+          { text: "🧶 MongoDB", link: "/数据库/MongoDB/MongoDB" }
+        ]
+      },
+      {
+        text: "💐中间件",
+        items: [
+          { text: "⭕ 正则表达式", link: "/中间件/正则表达式" },
         ]
       },
 	    {
@@ -43,21 +49,22 @@ module.exports = {
           {
             text:"Linux",
             items: [
-              { text: "🏹 Linux基础", link: "/运维类/Linux/Linux基础" },
-              { text: "🏹 Linux服务器白嫖", link: "/运维类/Linux/Linux服务器白嫖" },
-              { text: '🗂️ Linux下安装JDK', link: '/运维类/Linux/Linux下安装JDK' },
+              { text: "📚 Linux基础", link: "/运维类/Linux/Linux基础" },
+              { text: "🖥️ Linux服务器白嫖", link: "/运维类/Linux/Linux服务器白嫖" },
+              { text: '♾️ Linux下安装JDK', link: '/运维类/Linux/Linux下安装JDK' },
               { text: "🐬 Linux下安装MySQL", link: "/运维类/Linux/Linux下安装MySQL" },
-              { text: "🧶 Linux下安装PostgreSQL", link: "/运维类/Linux/Linux下安装PostgreSQL" },
-              { text: "🧶 Linux下安装Tomcat", link: "/运维类/Linux/Linux下安装Tomcat" },
-              { text: "🧶 Linux下安装Nginx", link: "/运维类/Linux/Linux下安装Nginx" },
-              { text: "🧶 Linux下安装Docker", link: "/运维类/Linux/Linux下安装Docker" },
-              { text: "🧶 Linux下部署jar包", link: "/运维类/Linux/Linux下部署jar包" }
+              { text: "🐾 Linux下安装PostgreSQL", link: "/运维类/Linux/Linux下安装PostgreSQL" },
+              { text: "🐭 Linux下安装Tomcat", link: "/运维类/Linux/Linux下安装Tomcat" },
+              { text: "🔰 Linux下安装Nginx", link: "/运维类/Linux/Linux下安装Nginx" },
+              { text: "🐳 Linux下安装Docker", link: "/运维类/Linux/Linux下安装Docker" },
+              { text: "🐞 Linux下部署jar包", link: "/运维类/Linux/Linux下部署jar包" }
             ],
           },
           {
             text:"Git",
             items: [
               { text: "🏹 Git基础", link: "/运维类/Git/Git基础" },
+              { text: "🏹 Git分支管理和规范", link: "/运维类/Git/Git分支管理和规范" },
               { text: "🏹 Git中解决commit大文件", link: "/运维类/Git/Git中解决commit大文件" }
             ],
           },
@@ -71,7 +78,7 @@ module.exports = {
       },
       { text: '项目实战', 
         items: [
-          { text: "📦 实战项目", link: "/项目实战/实战项目" },
+          { text: "🛠️ 实战项目", link: "/项目实战/实战项目" },
           { text: "🍃 参数校验", link: "/项目实战/参数校验" },
           { text: "🍃 实体类转换", link: "/项目实战/实体类转换" },
         ]
@@ -130,7 +137,7 @@ module.exports = {
       //         { text: "⬛ 命令模式", link: "/设计模式/行为型模式/命令模式" },
       //         { text: "🌽 模板方法模式", link: "/设计模式/行为型模式/模板方法模式" },
       //         { text: "⭕ 责任链模式", link: "/设计模式/行为型模式/责任链模式" },
-      //         { text: "📚 中介者模式", link: "/设计模式/行为型模式/中介者模式" },
+      //         { text: " 中介者模式", link: "/设计模式/行为型模式/中介者模式" },
       //         { text: "🌽 状态模式", link: "/设计模式/行为型模式/状态模式" },
       //       ],
       //     },

@@ -1725,3 +1725,1685 @@ public FilterRegistrationBean webStatFilter() {
 }
 ```
 
+## mybatis-spring-boot
+
+官方文档：http://mybatis.org/spring-boot-starter/mybatis-spring-boot-autoconfigure/
+
+**导入依赖**
+
+```xml
+<dependency>
+    <groupId>org.mybatis.spring.boot</groupId>
+    <artifactId>mybatis-spring-boot-starter</artifactId>
+    <version>2.1.1</version>
+</dependency>
+```
+
+**配置数据源**
+
+```yaml
+spring:
+  datasource:
+    username: root
+    password: 123456
+    #?serverTimezone=UTC解决时区的报错
+    url: jdbc:mysql://localhost:3306/springboot?serverTimezone=UTC&useUnicode=true&characterEncoding=utf-8
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    type: com.alibaba.druid.pool.DruidDataSource
+
+    #Spring Boot 默认是不注入这些属性值的，需要自己绑定
+    #druid 数据源专有配置
+    initialSize: 5
+    minIdle: 5
+    maxActive: 20
+    maxWait: 60000
+    timeBetweenEvictionRunsMillis: 60000
+    minEvictableIdleTimeMillis: 300000
+    validationQuery: SELECT 1 FROM DUAL
+    testWhileIdle: true
+    testOnBorrow: false
+    testOnReturn: false
+    poolPreparedStatements: true
+
+    #配置监控统计拦截的filters，stat:监控统计、log4j：日志记录、wall：防御sql注入
+    #如果允许时报错  java.lang.ClassNotFoundException: org.apache.log4j.Priority
+    #则导入 log4j 依赖即可，Maven 地址：https://mvnrepository.com/artifact/log4j/log4j
+    filters: stat,wall,log4j
+    maxPoolPreparedStatementPerConnectionSize: 20
+    useGlobalDataSourceStat: true
+    connectionProperties: druid.stat.mergeSql=true;druid.stat.slowSqlMillis=500
+```
+
+**编写Mapper类测试即可**
+
+## 静态资源处理
+
+> 静态资源映射规则
+
+在SpringBoot中，SpringMVC的web配置都在 WebMvcAutoConfiguration 这个配置类里面。WebMvcAutoConfigurationAdapter 中有很多配置方法，addResourceHandlers 是添加资源处理。
+
+```java
+public void addResourceHandlers(ResourceHandlerRegistry registry) {
+    // 已禁用默认资源处理
+    if (!this.resourceProperties.isAddMappings()) {
+        logger.debug("Default resource handling disabled");
+    } else {
+         // 缓存控制
+        Duration cachePeriod = this.resourceProperties.getCache().getPeriod();
+        CacheControl cacheControl = this.resourceProperties.getCache().getCachecontrol().toHttpCacheControl();
+        // webjars 配置
+        if (!registry.hasMappingForPattern("/webjars/**")) {
+            this.customizeResourceHandlerRegistration(registry.addResourceHandler(new String[]{"/webjars/**"}).addResourceLocations(new String[]{"classpath:/META-INF/resources/webjars/"}).setCachePeriod(this.getSeconds(cachePeriod)).setCacheControl(cacheControl));
+        }
+
+        // 静态资源配置
+        String staticPathPattern = this.mvcProperties.getStaticPathPattern();
+        if (!registry.hasMappingForPattern(staticPathPattern)) {
+            this.customizeResourceHandlerRegistration(registry.addResourceHandler(new String[]{staticPathPattern}).addResourceLocations(WebMvcAutoConfiguration.getResourceLocations(this.resourceProperties.getStaticLocations())).setCachePeriod(this.getSeconds(cachePeriod)).setCacheControl(cacheControl));
+        }
+
+    }
+}
+```
+
+读一下源代码：比如所有的`/webjars/**`， 都需要去`classpath:/META-INF/resources/webjars/`找对应的资源
+
+> webjars
+
+官方网址：https://www.webjars.org 
+
+以前要导入一个静态资源文件，直接导入即可。在SpringBoot需要使用Webjars，Webjars本质就是以jar包的方式引入我们的静态资源。
+
+举个栗子：
+
+导入jQuery依赖
+
+```xml
+<dependency>
+    <groupId>org.webjars</groupId>
+    <artifactId>jquery</artifactId>
+    <version>3.4.1</version>
+</dependency>
+```
+
+访问：只要是静态资源，SpringBoot就会去对应的路径寻找资源`http://localhost:8080/webjars/jquery/3.4.1/jquery.js`
+
+> 静态资源配置
+
+staticPathPattern第二种映射规则 ：/** , 访问当前的项目任意资源，它会去找 resourceProperties 这个类，点进分析
+
+```java
+// 进入方法
+public String[] getStaticLocations() {
+    return this.staticLocations;
+}
+
+public ResourceProperties() {
+    // 找到对应的值
+    this.staticLocations = CLASSPATH_RESOURCE_LOCATIONS;
+    this.addMappings = true;
+    this.chain = new ResourceProperties.Chain();
+    this.cache = new ResourceProperties.Cache();
+}
+
+// 找到路径
+private static final String[] CLASSPATH_RESOURCE_LOCATIONS = new String[]{"classpath:/META-INF/resources/", "classpath:/resources/", "classpath:/static/", "classpath:/public/"};
+private String[] staticLocations;
+private boolean addMappings;
+private final ResourceProperties.Chain chain;
+private final ResourceProperties.Cache cache;
+```
+
+ResourceProperties 可以设置和我们静态资源有关的参数；这里面指向了它会去寻找资源的文件夹，即上面数组的内容，所以得出结论，以下四个目录存放的静态资源可以被我们识别：
+
+```
+"classpath:/META-INF/resources/"
+"classpath:/resources/"
+"classpath:/static/"
+"classpath:/public/"
+```
+
+我们可以在resources根目录下新建对应的文件夹，都可以存放我们的静态文件。
+
+> 自定义静态资源路径
+
+一旦自己定义了静态文件夹的路径，原来的自动配置就都会失效了！在application.properties中配置
+
+```
+spring.resources.static-locations=classpath:/coding/,classpath:/javaboy/
+```
+
+> 首页处理
+
+```java
+@Bean
+public WelcomePageHandlerMapping welcomePageHandlerMapping(ApplicationContext applicationContext, FormattingConversionService mvcConversionService, ResourceUrlProvider mvcResourceUrlProvider) {
+    WelcomePageHandlerMapping welcomePageHandlerMapping = new WelcomePageHandlerMapping(new TemplateAvailabilityProviders(applicationContext), applicationContext, this.getWelcomePage(), this.mvcProperties.getStaticPathPattern());
+    welcomePageHandlerMapping.setInterceptors(this.getInterceptors(mvcConversionService, mvcResourceUrlProvider));
+    welcomePageHandlerMapping.setCorsConfigurations(this.getCorsConfigurations());
+    return welcomePageHandlerMapping;
+}
+
+// 获得欢迎页
+private Optional<Resource> getWelcomePage() {
+    String[] locations = WebMvcAutoConfiguration.getResourceLocations(this.resourceProperties.getStaticLocations());
+    return Arrays.stream(locations).map(this::getIndexHtml).filter(this::isReadable).findFirst();
+}
+
+// 欢迎页就是一个location下的的 index.html 而已
+private Resource getIndexHtml(String location) {
+    return this.resourceLoader.getResource(location + "index.html");
+}
+```
+
+> 网站图标
+
+与其他静态资源一样，Spring Boot在配置的静态内容位置中查找 favicon.ico。如果存在这样的文件，它将自动用作应用程序的favicon。
+
+**关闭SpringBoot默认图标**
+
+```
+spring.mvc.favicon.enabled=false
+```
+
+**放一个图标在静态资源目录下**
+
+ favicon.ico
+
+**清除浏览器缓存,刷新网页!**
+
+## Thymeleaf模板引擎
+
+Thymeleaf 官网：https://www.thymeleaf.org/
+
+模板引擎的作用是帮我们解析表达式、填充数据和输出页面。
+
+> 导入依赖
+
+```xml
+<!--thymeleaf-->
+<dependency>
+    <groupId>org.springframework.boot</groupId>
+    <artifactId>spring-boot-starter-thymeleaf</artifactId>
+</dependency>
+```
+
+> thymeleaf分析
+
+```java
+public class ThymeleafTemplateAvailabilityProvider implements TemplateAvailabilityProvider {
+    public ThymeleafTemplateAvailabilityProvider() {
+    }
+
+    public boolean isTemplateAvailable(String view, Environment environment, ClassLoader classLoader, ResourceLoader resourceLoader) {
+        if (ClassUtils.isPresent("org.thymeleaf.spring5.SpringTemplateEngine", classLoader)) {
+            String prefix = environment.getProperty("spring.thymeleaf.prefix", "classpath:/templates/");
+            String suffix = environment.getProperty("spring.thymeleaf.suffix", ".html");
+            return resourceLoader.getResource(prefix + view + suffix).exists();
+        } else {
+            return false;
+        }
+    }
+}
+```
+
+在其中看到默认的前缀和后缀，使用thymeleaf什么都不需要配置，只需要将他放在指定的文件夹下即可！即把html页面放在类路径下的templates下，thymeleaf就可以自动渲染了。
+
+> Thymeleaf 语法学习
+
+要使用thymeleaf，需要在html文件中导入命名空间的约束，方便提示
+
+```
+xmlns:th="http://www.thymeleaf.org"
+```
+
+## MVC自动配置原理
+
+官方网站
+
+```java
+Spring MVC Auto-configuration
+// Spring Boot为Spring MVC提供了自动配置，它可以很好地与大多数应用程序一起工作。
+Spring Boot provides auto-configuration for Spring MVC that works well with most applications.
+// 自动配置在Spring默认设置的基础上添加了以下功能：
+The auto-configuration adds the following features on top of Spring’s defaults:
+// 包含视图解析器
+Inclusion of ContentNegotiatingViewResolver and BeanNameViewResolver beans.
+// 支持静态资源文件夹的路径，以及webjars
+Support for serving static resources, including support for WebJars 
+// 自动注册了Converter：
+// 转换器，这就是我们网页提交数据到后台自动封装成为对象的东西，比如把"1"字符串自动转换为int类型
+// Formatter：【格式化器，比如页面给我们了一个2019-8-10，它会给我们自动格式化为Date对象】
+Automatic registration of Converter, GenericConverter, and Formatter beans.
+// HttpMessageConverters
+// SpringMVC用来转换Http请求和响应的的，比如我们要把一个User对象转换为JSON字符串，可以去看官网文档解释；
+Support for HttpMessageConverters (covered later in this document).
+// 定义错误代码生成规则的
+Automatic registration of MessageCodesResolver (covered later in this document).
+// 首页定制
+Static index.html support.
+// 图标定制
+Custom Favicon support (covered later in this document).
+// 初始化数据绑定器：帮我们把请求数据绑定到JavaBean中！
+Automatic use of a ConfigurableWebBindingInitializer bean (covered later in this document).
+
+/*
+如果您希望保留Spring Boot MVC功能，并且希望添加其他MVC配置（拦截器、格式化程序、视图控制器和其他功能），则可以添加自己
+的@configuration类，类型为webmvcconfiguer，但不添加@EnableWebMvc。如果希望提供
+RequestMappingHandlerMapping、RequestMappingHandlerAdapter或ExceptionHandlerExceptionResolver的自定义
+实例，则可以声明WebMVCregistrationAdapter实例来提供此类组件。
+*/
+If you want to keep Spring Boot MVC features and you want to add additional MVC configuration 
+(interceptors, formatters, view controllers, and other features), you can add your own 
+@Configuration class of type WebMvcConfigurer but without @EnableWebMvc. If you wish to provide 
+custom instances of RequestMappingHandlerMapping, RequestMappingHandlerAdapter, or 
+ExceptionHandlerExceptionResolver, you can declare a WebMvcRegistrationsAdapter instance to provide such components.
+
+// 如果您想完全控制Spring MVC，可以添加自己的@Configuration，并用@EnableWebMvc进行注释。
+If you want to take complete control of Spring MVC, you can add your own @Configuration annotated with @EnableWebMvc.
+```
+
+> ContentNegotiatingViewResolver 内容协商视图解析器
+
+```java
+@Bean
+@ConditionalOnBean({ViewResolver.class})
+@ConditionalOnMissingBean(
+    name = {"viewResolver"},
+    value = {ContentNegotiatingViewResolver.class}
+)
+public ContentNegotiatingViewResolver viewResolver(BeanFactory beanFactory) {
+    ContentNegotiatingViewResolver resolver = new ContentNegotiatingViewResolver();
+    resolver.setContentNegotiationManager((ContentNegotiationManager)beanFactory.getBean(ContentNegotiationManager.class));
+    // ContentNegotiatingViewResolver使用所有其他视图解析器来定位视图，因此它应该具有较高的优先级
+    resolver.setOrder(-2147483648);
+    return resolver;
+}
+```
+
+点进`ContentNegotiatingViewResolver`，找到对应的解析视图的代码
+
+```java
+// 注解说明：@Nullable 即参数可为null
+@Nullable
+public View resolveViewName(String viewName, Locale locale) throws Exception {
+    RequestAttributes attrs = RequestContextHolder.getRequestAttributes();
+    Assert.state(attrs instanceof ServletRequestAttributes, "No current ServletRequestAttributes");
+    List<MediaType> requestedMediaTypes = this.getMediaTypes(((ServletRequestAttributes)attrs).getRequest());
+    if (requestedMediaTypes != null) {
+        // 获取候选的视图对象
+        List<View> candidateViews = this.getCandidateViews(viewName, locale, requestedMediaTypes);
+        // 选择一个最适合的视图对象，然后把这个对象返回
+        View bestView = this.getBestView(candidateViews, requestedMediaTypes, attrs);
+        if (bestView != null) {
+            return bestView;
+        }
+    }
+
+    String mediaTypeInfo = this.logger.isDebugEnabled() && requestedMediaTypes != null ? " given " + requestedMediaTypes.toString() : "";
+    if (this.useNotAcceptableStatusCode) {
+        if (this.logger.isDebugEnabled()) {
+            this.logger.debug("Using 406 NOT_ACCEPTABLE" + mediaTypeInfo);
+        }
+
+        return NOT_ACCEPTABLE_VIEW;
+    } else {
+        this.logger.debug("View remains unresolved" + mediaTypeInfo);
+        return null;
+    }
+}
+```
+
+获得候选的视图getCandidateViews
+
+```java
+private List<View> getCandidateViews(String viewName, Locale locale, List<MediaType> requestedMediaTypes) throws Exception {
+    List<View> candidateViews = new ArrayList();
+    if (this.viewResolvers != null) {
+        Assert.state(this.contentNegotiationManager != null, "No ContentNegotiationManager set");
+        // 把所有的视图解析器拿来，进行while循环，挨个解析！
+        Iterator var5 = this.viewResolvers.iterator();
+
+        while(var5.hasNext()) {
+            ViewResolver viewResolver = (ViewResolver)var5.next();
+            View view = viewResolver.resolveViewName(viewName, locale);
+            if (view != null) {
+                candidateViews.add(view);
+            }
+
+            Iterator var8 = requestedMediaTypes.iterator();
+
+            while(var8.hasNext()) {
+                MediaType requestedMediaType = (MediaType)var8.next();
+                List<String> extensions = this.contentNegotiationManager.resolveFileExtensions(requestedMediaType);
+                Iterator var11 = extensions.iterator();
+
+                while(var11.hasNext()) {
+                    String extension = (String)var11.next();
+                    String viewNameWithExtension = viewName + '.' + extension;
+                    view = viewResolver.resolveViewName(viewNameWithExtension, locale);
+                    if (view != null) {
+                        candidateViews.add(view);
+                    }
+                }
+            }
+        }
+    }
+
+    if (!CollectionUtils.isEmpty(this.defaultViews)) {
+        candidateViews.addAll(this.defaultViews);
+    }
+
+    return candidateViews;
+}
+```
+
+**结论：ContentNegotiatingViewResolver 这个视图解析器就是用来组合所有的视图解析器的** 
+
+> 实现视图解析器
+
+组合逻辑，在容器中去找视图解析器
+
+```java
+protected void initServletContext(ServletContext servletContext) {
+    // 这里是从beanFactory工具中获取容器中的所有视图解析器，ViewRescolver.class 把所有的视图解析器来组合的
+    Collection<ViewResolver> matchingBeans = BeanFactoryUtils.beansOfTypeIncludingAncestors(this.obtainApplicationContext(), ViewResolver.class).values();
+    ViewResolver viewResolver;
+    if (this.viewResolvers == null) {
+        this.viewResolvers = new ArrayList(matchingBeans.size());
+        Iterator var3 = matchingBeans.iterator();
+
+        while(var3.hasNext()) {
+            viewResolver = (ViewResolver)var3.next();
+            if (this != viewResolver) {
+                this.viewResolvers.add(viewResolver);
+            }
+        }
+    } else {
+        for(int i = 0; i < this.viewResolvers.size(); ++i) {
+            viewResolver = (ViewResolver)this.viewResolvers.get(i);
+            if (!matchingBeans.contains(viewResolver)) {
+                String name = viewResolver.getClass().getName() + i;
+                this.obtainApplicationContext().getAutowireCapableBeanFactory().initializeBean(viewResolver, name);
+            }
+        }
+    }
+
+    AnnotationAwareOrderComparator.sort(this.viewResolvers);
+    this.cnmFactoryBean.setServletContext(servletContext);
+}
+```
+
+**编写自定义视图解析器**
+
+```java
+@Bean // 放到bean中
+public ViewResolver myViewResolver(){
+    return new MyViewResolver();
+}
+
+// 写一个静态内部类，视图解析器就需要实现ViewResolver接口
+private static class MyViewResolver implements ViewResolver{
+    @Override
+    public View resolveViewName(String s, Locale locale) throws Exception {
+        return null;
+    }
+}
+```
+
+给 DispatcherServlet 中的 doDispatch方法 加个断点进行调试一下，因为所有的请求都会走到这个方法中。
+
+找到this，找到视图解析器，可以看到我们自己定义的就在这里了。
+
+所以说，如果想要使用自己定制化的东西，只需要给容器中添加这个组件就好，剩下的事情SpringBoot就会帮我们做了！
+
+> 转换器和格式化器
+
+```java
+@Bean
+public FormattingConversionService mvcConversionService() {
+    // 拿到配置文件中的格式化规则
+    Format format = this.mvcProperties.getFormat();
+    WebConversionService conversionService = new WebConversionService((new DateTimeFormatters()).dateFormat(format.getDate()).timeFormat(format.getTime()).dateTimeFormat(format.getDateTime()));
+    this.addFormatters(conversionService);
+    return conversionService;
+}
+```
+
+查看`mvcProperties.getFormat()`源码
+
+```java
+public WebMvcProperties.Format getFormat() {
+    return this.format;
+}
+
+// Date format to use. For instance, `dd/MM/yyyy`. 默认的
+private final WebMvcProperties.Format format;
+```
+
+在Properties文件中，可以进行自动配置它！
+
+如果配置了自己的格式化方式，就会注册到Bean中生效，可以在配置文件中配置日期格式化的规则。
+
+> 扩展使用SpringMVC
+
+编写一个@Configuration注解类，并且类型要为WebMvcConfigurer，还不能标注@EnableWebMvc注解。
+
+```java
+// 应为类型要求为WebMvcConfigurer，所以我们实现其接口，可以使用自定义类扩展MVC的功能
+@Configuration
+public class MyMvcConfig implements WebMvcConfigurer {
+
+    @Override
+    public void addViewControllers(ViewControllerRegistry registry) {
+        // 浏览器发送/test ， 就会跳转到test页面；
+        registry.addViewController("/test").setViewName("test");
+    }
+}
+```
+
+**原理分析**
+
+1. WebMvcAutoConfiguration是SpringMVC的自动配置类
+
+2. WebMvcAutoConfiguration里面有一个类WebMvcAutoConfigurationAdapter
+
+3. WebMvcAutoConfigurationAdapter类上有@Import注解
+
+4. @Import(EnableWebMvcConfiguration.class)在做其他自动配置时会导入
+
+5. EnableWebMvcConfiguration继承了一个父类DelegatingWebMvcConfiguration
+
+   ```java
+   // 从容器中获取所有的webmvcConfigurer
+   @Autowired(
+       required = false
+   )
+   public void setConfigurers(List<WebMvcConfigurer> configurers) {
+       if (!CollectionUtils.isEmpty(configurers)) {
+           this.configurers.addWebMvcConfigurers(configurers);
+       }
+   
+   }
+   ```
+
+6. 寻找viewController当做参考
+
+   ```java
+   protected void addViewControllers(ViewControllerRegistry registry) {
+       this.configurers.addViewControllers(registry);
+   }
+   ```
+
+7. 查看addViewControllers源码
+
+   ```java
+   public void addViewControllers(ViewControllerRegistry registry) {
+       Iterator var2 = this.delegates.iterator();
+   
+       while(var2.hasNext()) {
+           // 将所有的WebMvcConfigurer相关配置来一起调用！包括自己配置的和Spring给我们配置的
+           WebMvcConfigurer delegate = (WebMvcConfigurer)var2.next();
+           delegate.addViewControllers(registry);
+       }
+   
+   }
+   ```
+
+**结论：所有的WebMvcConfiguration都会被作用，不止Spring自己的配置类，我们自己的配置类当然也会被调用！**
+
+> 全面接管SpringMVC
+
+**当然，我们开发中，不推荐使用全面接管SpringMVC！**
+
+全面接管是SpringBoot对SpringMVC的自动配置不需要了，所有都是我们自己去配置！
+
+简单使用，只需在我们的配置类中要加一个@EnableWebMvc。
+
+**源码分析**
+
+1、查看注解`@EnableWebMvc`，导入`DelegatingWebMvcConfiguration.class`
+
+```java
+@Import({DelegatingWebMvcConfiguration.class})
+public @interface EnableWebMvc {
+}
+```
+
+2、查看`DelegatingWebMvcConfiguration`，继承父类 WebMvcConfigurationSupport
+
+```java
+public class DelegatingWebMvcConfiguration extends WebMvcConfigurationSupport {
+  // ......
+}
+```
+
+3、我们来回顾一下Webmvc自动配置类
+
+```java
+@Configuration(proxyBeanMethods = false)
+@ConditionalOnWebApplication(type = Type.SERVLET)
+@ConditionalOnClass({ Servlet.class, DispatcherServlet.class, WebMvcConfigurer.class })
+// 这个注解的意思就是：容器中没有这个组件的时候，这个自动配置类才生效
+@ConditionalOnMissingBean(WebMvcConfigurationSupport.class)
+@AutoConfigureOrder(Ordered.HIGHEST_PRECEDENCE + 10)
+@AutoConfigureAfter({ DispatcherServletAutoConfiguration.class, TaskExecutionAutoConfiguration.class,
+    ValidationAutoConfiguration.class })
+public class WebMvcAutoConfiguration {
+    
+}
+```
+
+**结论：@EnableWebMvc将WebMvcConfigurationSupport组件导入进来了，而导入的WebMvcConfigurationSupport只是SpringMVC最基本的功能！**
+
+## 页面国际化
+
+> 配置文件编写
+
+在resources资源文件下新建一个i18n目录，存放国际化配置文件,建立一个login.properties、login_zh_CN.properties和login_en_US.properties
+
+>配置文件生效探究
+
+SpringBoot对国际化的自动配置：MessageSourceAutoConfiguration
+
+MessageSourceAutoConfiguration已经自动配置好了管理我们国际化资源文件的组件 ResourceBundleMessageSource；
+
+```java
+// 获取 properties 传递过来的值进行判断
+@Bean
+public MessageSource messageSource(MessageSourceProperties properties) {
+    ResourceBundleMessageSource messageSource = new ResourceBundleMessageSource();
+    if (StringUtils.hasText(properties.getBasename())) {
+        // 设置国际化文件的基础名（去掉语言国家代码的
+messageSource.setBasenames(StringUtils.commaDelimitedListToStringArray(StringUtils.trimAllWhitespace(properties.getBasename())));
+    }
+
+    if (properties.getEncoding() != null) {
+        messageSource.setDefaultEncoding(properties.getEncoding().name());
+    }
+
+    messageSource.setFallbackToSystemLocale(properties.isFallbackToSystemLocale());
+    Duration cacheDuration = properties.getCacheDuration();
+    if (cacheDuration != null) {
+        messageSource.setCacheMillis(cacheDuration.toMillis());
+    }
+
+    messageSource.setAlwaysUseMessageFormat(properties.isAlwaysUseMessageFormat());
+    messageSource.setUseCodeAsDefaultMessage(properties.isUseCodeAsDefaultMessage());
+    return messageSource;
+}
+```
+
+真实的情况是放在了i18n目录下，所以要去配置这个messages的路径
+
+```
+spring.messages.basename=i18n.login
+```
+
+> 配置国际化解析
+
+在Spring中有一个国际化的Locale （区域信息对象）；里面有一个叫做LocaleResolver （获取区域信息对象）的解析器！
+
+webmvc自动配置文件，寻找一下！看到SpringBoot默认配置
+
+```java
+@Bean
+@ConditionalOnMissingBean
+@ConditionalOnProperty(
+    prefix = "spring.mvc",
+    name = {"locale"}
+)
+public LocaleResolver localeResolver() {
+    // 容器中没有就自己配，有的话就用用户配置的
+    if (this.mvcProperties.getLocaleResolver() == org.springframework.boot.autoconfigure.web.servlet.WebMvcProperties.LocaleResolver.FIXED) {
+        return new FixedLocaleResolver(this.mvcProperties.getLocale());
+    } else {
+        // 接收头国际化分解
+        AcceptHeaderLocaleResolver localeResolver = new AcceptHeaderLocaleResolver();
+        localeResolver.setDefaultLocale(this.mvcProperties.getLocale());
+        return localeResolver;
+    }
+}
+```
+
+AcceptHeaderLocaleResolver的resolveLocale方法
+
+```java
+public Locale resolveLocale(HttpServletRequest request) {
+    Locale defaultLocale = this.getDefaultLocale();
+    // 默认的就是根据请求头带来的区域信息获取Locale进行国际化
+    if (defaultLocale != null && request.getHeader("Accept-Language") == null) {
+        return defaultLocale;
+    } else {
+        Locale requestLocale = request.getLocale();
+        List<Locale> supportedLocales = this.getSupportedLocales();
+        if (!supportedLocales.isEmpty() && !supportedLocales.contains(requestLocale)) {
+            Locale supportedLocale = this.findSupportedLocale(request, supportedLocales);
+            if (supportedLocale != null) {
+                return supportedLocale;
+            } else {
+                return defaultLocale != null ? defaultLocale : requestLocale;
+            }
+        } else {
+            return requestLocale;
+        }
+    }
+}
+```
+
+那假如现在想点击链接让我们的国际化资源生效，就需要让我们自己的Locale生效！
+
+编写自己的LocaleResolver，可以在链接上携带区域信息，编写一个处理的组件类
+
+```java
+//可以在链接上携带区域信息
+public class MyLocaleResolver implements LocaleResolver {
+
+    //解析请求
+    @Override
+    public Locale resolveLocale(HttpServletRequest request) {
+
+        String language = request.getParameter("l");
+        // 如果没有获取到就使用系统默认的
+        Locale locale = Locale.getDefault();
+        //如果请求链接不为空
+        if (!StringUtils.isEmpty(language)){
+            //分割请求参数
+            String[] split = language.split("_");
+            //国家，地区
+            locale = new Locale(split[0],split[1]);
+        }
+        return locale;
+    }
+
+    @Override
+    public void setLocale(HttpServletRequest httpServletRequest, HttpServletResponse httpServletResponse, Locale locale) {
+
+    }
+}
+```
+
+为了让区域化信息能够生效，需要再配置一下这个组件！在自己的MvcConofig下添加bean
+
+```java
+@Bean
+public LocaleResolver localeResolver(){
+    return new MyLocaleResolver();
+}
+```
+
+## Swagger
+
+官方网址：https://swagger.io/
+
+> 快速开始
+
+添加依赖
+
+```xml
+<!-- https://mvnrepository.com/artifact/io.springfox/springfox-swagger2 -->
+<dependency>
+   <groupId>io.springfox</groupId>
+   <artifactId>springfox-swagger2</artifactId>
+   <version>2.9.2</version>
+</dependency>
+<!-- https://mvnrepository.com/artifact/io.springfox/springfox-swagger-ui -->
+<dependency>
+   <groupId>io.springfox</groupId>
+   <artifactId>springfox-swagger-ui</artifactId>
+   <version>2.9.2</version>
+</dependency>
+```
+
+编写配置文件
+
+```java
+// 配置类
+@Configuration
+// 开启Swagger2的自动配置
+@EnableSwagger2
+public class SwaggerConfig {  
+}
+```
+
+访问测试:`http://localhost:8080/swagger-ui.html`
+
+> 配置Swagger
+
+通过配置Docket实例来配置Swaggger
+
+```java
+// 配置docket以配置Swagger具体参数
+@Bean
+public Docket docket() {
+   return new Docket(DocumentationType.SWAGGER_2);
+}
+```
+
+通过apiInfo()属性配置文档信息
+
+```java
+//配置文档信息
+private ApiInfo apiInfo() {
+   Contact contact = new Contact("联系人名字", "http://xxx.xxx.com/联系人访问链接", "联系人邮箱");
+   return new ApiInfo(
+       	   // 标题
+           "Swagger学习",
+     	   // 描述
+           "学习演示如何配置Swagger",
+       	   // 版本
+           "v1.0",
+       	   // 组织链接
+           "http://terms.service.url/组织链接",
+       	   // 联系人信息
+           contact, 
+      	   // 许可
+           "Apach 2.0 许可",
+           "许可链接",
+    	   // 扩展
+           new ArrayList<>()
+  );
+}
+```
+
+Docket 实例关联上 apiInfo()
+
+```java
+@Bean
+public Docket docket() {
+   return new Docket(DocumentationType.SWAGGER_2).apiInfo(apiInfo());
+}
+```
+
+> 配置扫描接口
+
+构建Docket时通过select()方法配置怎么扫描接口
+
+```java
+@Bean
+public Docket docket() {
+   return new Docket(DocumentationType.SWAGGER_2)
+      .apiInfo(apiInfo())
+       // 通过.select()方法，去配置扫描接口,RequestHandlerSelectors配置如何扫描接口
+      .select()
+      .apis(RequestHandlerSelectors.basePackage("com.javaboy.swagger.controller"))
+      .build();
+}
+```
+
+除了通过包路径配置扫描接口外，还可以通过配置其他方式扫描接口，这里注释一下所有的配置方式：
+
+```java
+// 扫描所有，项目中的所有接口都会被扫描到
+any()
+// 不扫描接口
+none()
+// 通过方法上的注解扫描，如withMethodAnnotation(GetMapping.class)只扫描get请求
+withMethodAnnotation(final Class<? extends Annotation> annotation)
+// 通过类上的注解扫描，如.withClassAnnotation(Controller.class)只扫描有controller注解的类中的接口
+withClassAnnotation(final Class<? extends Annotation> annotation)
+// 根据包路径扫描接口
+basePackage(final String basePackage)
+```
+
+可以配置接口扫描过滤
+
+```java
+@Bean
+public Docket docket() {
+   return new Docket(DocumentationType.SWAGGER_2)
+      .apiInfo(apiInfo())
+       // 通过.select()方法，去配置扫描接口,RequestHandlerSelectors配置如何扫描接口
+      .select()
+      .apis(RequestHandlerSelectors.basePackage("com.javaboy.swagger.controller"))
+       // 配置如何通过path过滤,即这里只扫描请求以/javaboy开头的接口
+      .paths(PathSelectors.ant("/javaboy/**"))
+      .build();
+}
+```
+
+配置接口扫描的可选值
+
+```java
+// 任何请求都扫描
+any()
+// 任何请求都不扫描
+none()
+// 通过正则表达式控制
+regex(final String pathRegex)
+// 通过ant()控制
+ant(final String antPattern)
+```
+
+> 配置Swagger开关
+
+通过enable()方法配置是否启用swagger
+
+```java
+@Bean
+public Docket docket() {
+   return new Docket(DocumentationType.SWAGGER_2)
+      .apiInfo(apiInfo())
+       //配置是否启用Swagger，如果是false，在浏览器将无法访问
+      .enable(false)
+       // 通过.select()方法，去配置扫描接口,RequestHandlerSelectors配置如何扫描接口
+      .select()
+      .apis(RequestHandlerSelectors.basePackage("com.javaboy.swagger.controller"))
+       // 配置如何通过path过滤,即这里只扫描请求以/javaboy开头的接口
+      .paths(PathSelectors.ant("/javaboy/**"))
+      .build();
+}
+```
+
+动态配置当项目处于test、dev环境时显示swagger
+
+```java
+@Bean
+public Docket docket(Environment environment) {
+   // 设置要显示swagger的环境
+   Profiles profile = Profiles.of("dev", "test");
+   // 判断当前是否处于该环境,通过 enable() 接收此参数判断是否要显示
+   boolean flag = environment.acceptsProfiles(profile);
+   
+   return new Docket(DocumentationType.SWAGGER_2)
+      .apiInfo(apiInfo())
+       // 配置是否启用Swagger，如果是false，在浏览器将无法访问
+      .enable(flag)
+       // 通过.select()方法，去配置扫描接口,RequestHandlerSelectors配置如何扫描接口
+      .select()
+      .apis(RequestHandlerSelectors.basePackage("com.javaboy.swagger.controller"))
+       // 配置如何通过path过滤,即这里只扫描请求以/javaboy开头的接口
+      .paths(PathSelectors.ant("/javaboy/**"))
+      .build();
+}
+```
+
+> 配置API分组
+
+如果没有配置分组，默认是default,通过groupName()方法即可配置分组
+
+```java
+@Bean
+public Docket docket(Environment environment) {
+   return new Docket(DocumentationType.SWAGGER_2).apiInfo(apiInfo())
+      .groupName("hello") // 配置分组
+       // 省略配置....
+}
+```
+
+配置多个分组
+
+```java
+@Bean
+public Docket docket1(){
+   return new Docket(DocumentationType.SWAGGER_2).groupName("group1");
+}
+@Bean
+public Docket docket2(){
+   return new Docket(DocumentationType.SWAGGER_2).groupName("group2");
+}
+@Bean
+public Docket docket3(){
+   return new Docket(DocumentationType.SWAGGER_2).groupName("group3");
+}
+```
+
+> 实体配置
+
+```java
+@ApiModel("用户实体")
+public class User {
+   @ApiModelProperty("用户名")
+   public String username;
+   @ApiModelProperty("密码")
+   public String password;
+}
+```
+
+@ApiModel为类添加注释，@ApiModelProperty为类属性添加注释。
+
+但是并不是因为@ApiModel这个注解让实体显示在这里了，而是只要出现在接口方法的返回值上的实体都会显示在这里
+
+> 常用注解
+
+| Swagger注解                                            | 简单说明                                             |
+| ------------------------------------------------------ | ---------------------------------------------------- |
+| @Api(tags = "xxx模块说明")                             | 作用在模块类上                                       |
+| @ApiOperation("xxx接口说明")                           | 作用在接口方法上                                     |
+| @ApiModel("xxxPOJO说明")                               | 作用在模型类上：如VO、BO                             |
+| @ApiModelProperty(value = "xxx属性说明",hidden = true) | 作用在类方法和属性上，hidden设置为true可以隐藏该属性 |
+| @ApiParam("xxx参数说明")                               | 作用在参数、方法和字段上，类似@ApiModelProperty      |
+
+> 拓展：其他皮肤
+
+**默认**
+
+```xml
+<dependency>
+   <groupId>io.springfox</groupId>
+   <artifactId>springfox-swagger-ui</artifactId>
+   <version>2.9.2</version>
+</dependency>
+```
+
+**bootstrap-ui**
+
+```xml
+<dependency>
+   <groupId>com.github.xiaoymin</groupId>
+   <artifactId>swagger-bootstrap-ui</artifactId>
+   <version>1.9.1</version>
+</dependency>
+```
+
+**Layui-ui**
+
+```xml
+<dependency>
+   <groupId>com.github.caspar-chen</groupId>
+   <artifactId>swagger-ui-layer</artifactId>
+   <version>1.1.3</version>
+</dependency>
+```
+
+**mg-ui**
+
+```xml
+<dependency>
+   <groupId>com.zyplayer</groupId>
+   <artifactId>swagger-mg-ui</artifactId>
+   <version>1.0.6</version>
+</dependency>
+```
+
+## 多线程实现
+
+### 异步任务
+
+**编写异步服务**
+
+```java
+@Service
+public class AsyncService {
+
+   // 告诉Spring这是一个异步方法
+   @Async
+   public void hello(){
+       try {
+           Thread.sleep(3000);
+      } catch (InterruptedException e) {
+           e.printStackTrace();
+      }
+       System.out.println("业务进行中....");
+  }
+}
+```
+
+**编写异步实现**
+
+```java
+@RestController
+public class AsyncController {
+
+   @Autowired
+   AsyncService asyncService;
+
+   @GetMapping("/hello")
+   public String hello(){
+       asyncService.hello();
+       return "success";
+  }
+
+}
+```
+
+**开启异步注解功能**
+
+```java
+@EnableAsync
+@SpringBootApplication
+public class SpringbootTaskApplication {
+
+   public static void main(String[] args) {
+       SpringApplication.run(SpringbootTaskApplication.class, args);
+  }
+
+}
+```
+
+### 定时任务
+
+Spring为我们提供了异步执行任务调度的方式。
+
+两个接口：
+
+- TaskExecutor接口
+- TaskScheduler接口
+
+两个注解：
+
+- @EnableScheduling
+- @Scheduled
+
+**编写定时任务**
+
+```java
+@Service
+public class ScheduledService {
+   // 秒   分   时     日   月   周几
+   // 0 * * * * MON-FRI
+   // 注意cron表达式的用法；
+   @Scheduled(cron = "0 * * * * 0-7")
+   public void hello(){
+       System.out.println("hello.....");
+  }
+}
+```
+
+**开启定时任务功能**
+
+```java
+// 开启异步注解功能
+@EnableAsync
+// 开启基于注解的定时任务
+@EnableScheduling
+@SpringBootApplication
+public class SpringbootTaskApplication {
+
+   public static void main(String[] args) {
+       SpringApplication.run(SpringbootTaskApplication.class, args);
+  }
+
+}
+```
+
+**在线Cron表达式：https://www.bejson.com/othertools/cron/**
+
+**常用表达式**
+
+```
+（1）0/2 * * * * ?   表示每2秒 执行任务
+（1）0 0/2 * * * ?   表示每2分钟 执行任务
+（1）0 0 2 1 * ?   表示在每月的1日的凌晨2点调整任务
+（2）0 15 10 ? * MON-FRI   表示周一到周五每天上午10:15执行作业
+（3）0 15 10 ? 6L 2002-2006   表示2002-2006年的每个月的最后一个星期五上午10:15执行作
+（4）0 0 10,14,16 * * ?   每天上午10点，下午2点，4点
+（5）0 0/30 9-17 * * ?   朝九晚五工作时间内每半小时
+（6）0 0 12 ? * WED   表示每个星期三中午12点
+（7）0 0 12 * * ?   每天中午12点触发
+（8）0 15 10 ? * *   每天上午10:15触发
+（9）0 15 10 * * ?     每天上午10:15触发
+（10）0 15 10 * * ?   每天上午10:15触发
+（11）0 15 10 * * ? 2005   2005年的每天上午10:15触发
+（12）0 * 14 * * ?     在每天下午2点到下午2:59期间的每1分钟触发
+（13）0 0/5 14 * * ?   在每天下午2点到下午2:55期间的每5分钟触发
+（14）0 0/5 14,18 * * ?     在每天下午2点到2:55期间和下午6点到6:55期间的每5分钟触发
+（15）0 0-5 14 * * ?   在每天下午2点到下午2:05期间的每1分钟触发
+（16）0 10,44 14 ? 3 WED   每年三月的星期三的下午2:10和2:44触发
+（17）0 15 10 ? * MON-FRI   周一至周五的上午10:15触发
+（18）0 15 10 15 * ?   每月15日上午10:15触发
+（19）0 15 10 L * ?   每月最后一日的上午10:15触发
+（20）0 15 10 ? * 6L   每月的最后一个星期五上午10:15触发
+（21）0 15 10 ? * 6L 2002-2005   2002年至2005年的每月的最后一个星期五上午10:15触发
+（22）0 15 10 ? * 6#3   每月的第三个星期五上午10:15触发
+```
+
+### 邮件任务
+
+**导入依赖**
+
+```xml
+<dependency>
+   <groupId>org.springframework.boot</groupId>
+   <artifactId>spring-boot-starter-mail</artifactId>
+</dependency>
+```
+
+spring-boot-starter-mail包含依赖jakarta.mail
+
+```xml
+<dependency>
+   <groupId>com.sun.mail</groupId>
+   <artifactId>jakarta.mail</artifactId>
+   <version>1.6.4</version>
+   <scope>compile</scope>
+</dependency>
+```
+
+**查看自动配置类MailSenderAutoConfiguration**
+
+```java
+@Configuration(
+    proxyBeanMethods = false
+)
+@ConditionalOnClass({MimeMessage.class, MimeType.class, MailSender.class})
+@ConditionalOnMissingBean({MailSender.class})
+@Conditional({MailSenderAutoConfiguration.MailSenderCondition.class})
+@EnableConfigurationProperties({MailProperties.class})
+@Import({MailSenderJndiConfiguration.class, MailSenderPropertiesConfiguration.class})
+public class MailSenderAutoConfiguration {
+    public MailSenderAutoConfiguration() {
+    }
+
+    static class MailSenderCondition extends AnyNestedCondition {
+        MailSenderCondition() {
+            super(ConfigurationPhase.PARSE_CONFIGURATION);
+        }
+
+        @ConditionalOnProperty(
+            prefix = "spring.mail",
+            name = {"jndi-name"}
+        )
+        static class JndiNameProperty {
+            JndiNameProperty() {
+            }
+        }
+
+        @ConditionalOnProperty(
+            prefix = "spring.mail",
+            name = {"host"}
+        )
+        static class HostProperty {
+            HostProperty() {
+            }
+        }
+    }
+}
+```
+
+查看`MailSenderJndiConfiguration.class`
+
+```java
+@Configuration(
+    proxyBeanMethods = false
+)
+@ConditionalOnClass({Session.class})
+@ConditionalOnProperty(
+    prefix = "spring.mail",
+    name = {"jndi-name"}
+)
+@ConditionalOnJndi
+class MailSenderJndiConfiguration {
+    private final MailProperties properties;
+
+    MailSenderJndiConfiguration(MailProperties properties) {
+        this.properties = properties;
+    }
+
+    @Bean
+    JavaMailSenderImpl mailSender(Session session) {
+        JavaMailSenderImpl sender = new JavaMailSenderImpl();
+        sender.setDefaultEncoding(this.properties.getDefaultEncoding().name());
+        sender.setSession(session);
+        return sender;
+    }
+
+    @Bean
+    @ConditionalOnMissingBean
+    Session session() {
+        String jndiName = this.properties.getJndiName();
+
+        try {
+            return (Session)JndiLocatorDelegate.createDefaultResourceRefLocator().lookup(jndiName, Session.class);
+        } catch (NamingException var3) {
+            throw new IllegalStateException(String.format("Unable to find Session in JNDI location %s", jndiName), var3);
+        }
+    }
+}
+```
+
+查看`MailSenderPropertiesConfiguration`
+
+```java
+@Configuration(
+    proxyBeanMethods = false
+)
+@ConditionalOnProperty(
+    prefix = "spring.mail",
+    name = {"host"}
+)
+class MailSenderPropertiesConfiguration {
+    MailSenderPropertiesConfiguration() {
+    }
+
+    @Bean
+    @ConditionalOnMissingBean({JavaMailSender.class})
+    JavaMailSenderImpl mailSender(MailProperties properties) {
+        JavaMailSenderImpl sender = new JavaMailSenderImpl();
+        this.applyProperties(properties, sender);
+        return sender;
+    }
+
+    private void applyProperties(MailProperties properties, JavaMailSenderImpl sender) {
+        sender.setHost(properties.getHost());
+        if (properties.getPort() != null) {
+            sender.setPort(properties.getPort());
+        }
+
+        sender.setUsername(properties.getUsername());
+        sender.setPassword(properties.getPassword());
+        sender.setProtocol(properties.getProtocol());
+        if (properties.getDefaultEncoding() != null) {
+            sender.setDefaultEncoding(properties.getDefaultEncoding().name());
+        }
+
+        if (!properties.getProperties().isEmpty()) {
+            sender.setJavaMailProperties(this.asProperties(properties.getProperties()));
+        }
+
+    }
+
+    private Properties asProperties(Map<String, String> source) {
+        Properties properties = new Properties();
+        properties.putAll(source);
+        return properties;
+    }
+}
+```
+
+查看`MailProperties`
+
+```java
+@ConfigurationProperties(
+    prefix = "spring.mail"
+)
+public class MailProperties {
+    private static final Charset DEFAULT_CHARSET;
+    private String host;
+    private Integer port;
+    private String username;
+    private String password;
+    private String protocol = "smtp";
+    private Charset defaultEncoding;
+    private Map<String, String> properties;
+    private String jndiName;
+
+    public MailProperties() {
+        this.defaultEncoding = DEFAULT_CHARSET;
+        this.properties = new HashMap();
+    }
+
+    public String getHost() {
+        return this.host;
+    }
+
+    public void setHost(String host) {
+        this.host = host;
+    }
+
+    public Integer getPort() {
+        return this.port;
+    }
+
+    public void setPort(Integer port) {
+        this.port = port;
+    }
+
+    public String getUsername() {
+        return this.username;
+    }
+
+    public void setUsername(String username) {
+        this.username = username;
+    }
+
+    public String getPassword() {
+        return this.password;
+    }
+
+    public void setPassword(String password) {
+        this.password = password;
+    }
+
+    public String getProtocol() {
+        return this.protocol;
+    }
+
+    public void setProtocol(String protocol) {
+        this.protocol = protocol;
+    }
+
+    public Charset getDefaultEncoding() {
+        return this.defaultEncoding;
+    }
+
+    public void setDefaultEncoding(Charset defaultEncoding) {
+        this.defaultEncoding = defaultEncoding;
+    }
+
+    public Map<String, String> getProperties() {
+        return this.properties;
+    }
+
+    public void setJndiName(String jndiName) {
+        this.jndiName = jndiName;
+    }
+
+    public String getJndiName() {
+        return this.jndiName;
+    }
+
+    static {
+        DEFAULT_CHARSET = StandardCharsets.UTF_8;
+    }
+}
+```
+
+**配置文件**
+
+```
+spring.mail.username=24736743@qq.com
+spring.mail.password=你的qq授权码
+spring.mail.host=smtp.qq.com
+# qq需要配置ssl
+spring.mail.properties.mail.smtp.ssl.enable=true
+```
+
+获取授权码：在QQ邮箱中的设置->账户->开启pop3和smtp服务
+
+**单元测试**
+
+```java
+@Autowired
+JavaMailSenderImpl mailSender;
+
+@Test
+public void contextLoads() {
+   // 邮件设置1：一个简单的邮件
+   SimpleMailMessage message = new SimpleMailMessage();
+   message.setSubject("通知-明天来狂神这听课");
+   message.setText("今晚7:30开会");
+
+   message.setTo("438217638@qq.com");
+   message.setFrom("438217638@qq.com");
+   mailSender.send(message);
+}
+
+@Test
+public void contextLoads2() throws MessagingException {
+   // 邮件设置2：一个复杂的邮件
+   MimeMessage mimeMessage = mailSender.createMimeMessage();
+   MimeMessageHelper helper = new MimeMessageHelper(mimeMessage, true);
+
+   helper.setSubject("通知-明天来开会");
+   helper.setText("<b style='color:red'>今天 7:30来开会</b>",true);
+
+   // 发送附件
+   helper.addAttachment("1.jpg",new File(""));
+   helper.addAttachment("2.jpg",new File(""));
+
+   helper.setTo("438217638@qq.com");
+   helper.setFrom("438217638@qq.com");
+
+   mailSender.send(mimeMessage);
+}
+```
+
+## 富文本编辑器
+
+> 市面上有许多非常成熟的富文本编辑器
+
+- **Editor.md**——功能非常丰富的编辑器，左端编辑，右端预览，非常方便，完全免费
+  - 官网：https://pandao.github.io/editor.md/
+- **wangEditor**——基于javascript和css开发的 Web富文本编辑器， 轻量、简洁、界面美观、易用、开源免费。
+  - 官网：http://www.wangeditor.com/
+- **TinyMCE**——TinyMCE是一个轻量级的基于浏览器的所见即所得编辑器，由JavaScript写成。它对IE6+和Firefox1.5+都有着非常良好的支持。功能齐全，界面美观，就是文档是英文的，对开发人员英文水平有一定要求。
+  - 官网：https://www.tiny.cloud/docs/demo/full-featured/
+- **百度ueditor**——UEditor是由百度web前端研发部开发所见即所得富文本web编辑器，具有轻量，功能齐全，可定制，注重用户体验等特点，开源基于MIT协议，允许自由使用和修改代码，缺点是已经没有更新了
+  - 官网：https://ueditor.baidu.com/website/onlinedemo.html
+- **kindeditor**——界面经典。
+  - 官网：http://kindeditor.net/demo.php
+- **Textbox**——Textbox是一款极简但功能强大的在线文本编辑器，支持桌面设备和移动设备。主要功能包含内置的图像处理和存储、文件拖放、拼写检查和自动更正。此外，该工具还实现了屏幕阅读器等辅助技术，并符合WAI-ARIA可访问性标准。
+  - 官网：https://textbox.io/
+- **CKEditor**——国外的，界面美观。
+  - 官网：https://ckeditor.com/ckeditor-5/demo/
+- **quill**——功能强大，还可以编辑公式等
+  - 官网：https://quilljs.com/
+- **simditor**——界面美观，功能较全。
+  - 官网：https://simditor.tower.im/
+- **summernote**——UI好看，精美
+  - 官网：https://summernote.org/
+- **jodit**——功能齐全
+  - 官网：https://xdsoft.net/jodit/
+- **froala Editor**——界面非常好看，功能非常强大，非常好用（非免费）
+  - 官网：https://www.froala.com/wysiwyg-editor
+
+> Editor.md
+
+博客上传页面
+
+```html
+<!DOCTYPE html>
+<html class="x-admin-sm" lang="zh" xmlns:th="http://www.thymeleaf.org">
+
+<head>
+   <meta charset="UTF-8">
+   <title>秦疆'Blog</title>
+   <meta name="renderer" content="webkit">
+   <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+   <meta name="viewport" content="width=device-width,user-scalable=yes, minimum-scale=0.4, initial-scale=0.8,target-densitydpi=low-dpi" />
+   <!--Editor.md-->
+   <link rel="stylesheet" th:href="@{/editormd/css/editormd.css}"/>
+   <link rel="shortcut icon" href="https://pandao.github.io/editor.md/favicon.ico" type="image/x-icon" />
+</head>
+
+<body>
+
+<div class="layui-fluid">
+   <div class="layui-row layui-col-space15">
+       <div class="layui-col-md12">
+           <!--博客表单-->
+           <form name="mdEditorForm">
+               <div>
+                  标题：<input type="text" name="title">
+               </div>
+               <div>
+                  作者：<input type="text" name="author">
+               </div>
+               <div id="article-content">
+                   <textarea name="content" id="content" style="display:none;"> </textarea>
+               </div>
+           </form>
+
+       </div>
+   </div>
+</div>
+</body>
+
+<!--editormd-->
+<script th:src="@{/editormd/lib/jquery.min.js}"></script>
+<script th:src="@{/editormd/editormd.js}"></script>
+
+<script type="text/javascript">
+   var testEditor;
+
+   //window.onload = function(){ }
+   $(function() {
+       testEditor = editormd("article-content", {
+           width : "95%",
+           height : 400,
+           syncScrolling : "single",
+           path : "../editormd/lib/",
+           saveHTMLToTextarea : true,    // 保存 HTML 到 Textarea
+           emoji: true,
+           theme: "dark",//工具栏主题
+           previewTheme: "dark",//预览主题
+           editorTheme: "pastel-on-dark",//编辑主题
+           tex : true,                   // 开启科学公式TeX语言支持，默认关闭
+           flowChart : true,             // 开启流程图支持，默认关闭
+           sequenceDiagram : true,       // 开启时序/序列图支持，默认关闭,
+           //图片上传
+           imageUpload : true,
+           imageFormats : ["jpg", "jpeg", "gif", "png", "bmp", "webp"],
+           imageUploadURL : "/article/file/upload",
+           onload : function() {
+               console.log('onload', this);
+          },
+           /*指定需要显示的功能按钮*/
+           toolbarIcons : function() {
+               return ["undo","redo","|",
+                   "bold","del","italic","quote","ucwords","uppercase","lowercase","|",
+                   "h1","h2","h3","h4","h5","h6","|",
+                   "list-ul","list-ol","hr","|",
+                   "link","reference-link","image","code","preformatted-text",
+                   "code-block","table","datetime","emoji","html-entities","pagebreak","|",
+                   "goto-line","watch","preview","fullscreen","clear","search","|",
+                   "help","info","releaseIcon", "index"]
+          },
+
+           /*自定义功能按钮，下面我自定义了2个，一个是发布，一个是返回首页*/
+           toolbarIconTexts : {
+               releaseIcon : "<span bgcolor=\"gray\">发布</span>",
+               index : "<span bgcolor=\"red\">返回首页</span>",
+          },
+
+           /*给自定义按钮指定回调函数*/
+           toolbarHandlers:{
+               releaseIcon : function(cm, icon, cursor, selection) {
+                   //表单提交
+                   mdEditorForm.method = "post";
+                   mdEditorForm.action = "/article/addArticle";//提交至服务器的路径
+                   mdEditorForm.submit();
+              },
+               index : function(){
+                   window.location.href = '/';
+              },
+          }
+      });
+  });
+</script>
+
+</html>
+```
+
+博客展示页面
+
+```html
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+   <meta charset="UTF-8">
+   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+   <title th:text="${article.title}"></title>
+</head>
+<body>
+
+<div>
+   <!--文章头部信息：标题，作者，最后更新日期，导航-->
+   <h2 style="margin: auto 0" th:text="${article.title}"></h2>
+  作者：<span style="float: left" th:text="${article.author}"></span>
+   <!--文章主体内容-->
+   <div id="doc-content">
+       <textarea style="display:none;" placeholder="markdown" th:text="${article.content}"></textarea>
+   </div>
+
+</div>
+
+<link rel="stylesheet" th:href="@{/editormd/css/editormd.preview.css}" />
+<script th:src="@{/editormd/lib/jquery.min.js}"></script>
+<script th:src="@{/editormd/lib/marked.min.js}"></script>
+<script th:src="@{/editormd/lib/prettify.min.js}"></script>
+<script th:src="@{/editormd/lib/raphael.min.js}"></script>
+<script th:src="@{/editormd/lib/underscore.min.js}"></script>
+<script th:src="@{/editormd/lib/sequence-diagram.min.js}"></script>
+<script th:src="@{/editormd/lib/flowchart.min.js}"></script>
+<script th:src="@{/editormd/lib/jquery.flowchart.min.js}"></script>
+<script th:src="@{/editormd/editormd.js}"></script>
+
+<script type="text/javascript">
+   var testEditor;
+   $(function () {
+       testEditor = editormd.markdownToHTML("doc-content", {//注意：这里是上面DIV的id
+           htmlDecode: "style,script,iframe",
+           emoji: true,
+           taskList: true,
+           tocm: true,
+           tex: true, // 默认不解析
+           flowChart: true, // 默认不解析
+           sequenceDiagram: true, // 默认不解析
+           codeFold: true
+      });});
+</script>
+</body>
+</html>
+```
+
+> 图片上传问题
+
+1、前端js中添加配置
+
+```js
+//图片上传
+imageUpload : true,
+imageFormats : ["jpg", "jpeg", "gif", "png", "bmp", "webp"],
+imageUploadURL : "/article/file/upload", // 这个是上传图片时的访问地址
+```
+
+2、后端请求，接收保存这个图片, 需要导入 FastJson 的依赖！
+
+```java
+// 博客图片上传问题
+@RequestMapping("/file/upload")
+@ResponseBody
+public JSONObject fileUpload(@RequestParam(value = "editormd-image-file", required = true) MultipartFile file, HttpServletRequest request) throws IOException {
+   // 上传路径保存设置
+
+   // 获得SpringBoot当前项目的路径：System.getProperty("user.dir")
+   String path = System.getProperty("user.dir")+"/upload/";
+
+   // 按照月份进行分类：
+   Calendar instance = Calendar.getInstance();
+   String month = (instance.get(Calendar.MONTH) + 1)+"月";
+   path = path+month;
+
+   File realPath = new File(path);
+   if (!realPath.exists()){
+       realPath.mkdir();
+  }
+
+   // 上传文件地址
+   System.out.println("上传文件保存地址："+realPath);
+
+   // 解决文件名字问题：我们使用uuid;
+   String filename = "ks-"+UUID.randomUUID().toString().replaceAll("-", "");
+   // 通过CommonsMultipartFile的方法直接写文件（注意这个时候）
+   file.transferTo(new File(realPath +"/"+ filename));
+
+   // 给editormd进行回调
+   JSONObject res = new JSONObject();
+   res.put("url","/upload/"+month+"/"+ filename);
+   res.put("success", 1);
+   res.put("message", "upload success!");
+
+   return res;
+}
+```
+
+3、解决文件回显显示的问题，设置虚拟目录映射！在我们自己拓展的MvcConfig中进行配置即可！
+
+```java
+@Configuration
+public class MyMvcConfig implements WebMvcConfigurer {
+
+   // 文件保存在真实目录/upload/下，
+   // 访问的时候使用虚路径/upload，比如文件名为1.png，就直接/upload/1.png就ok了。
+   @Override
+   public void addResourceHandlers(ResourceHandlerRegistry registry) {
+       registry.addResourceHandler("/upload/**")
+          .addResourceLocations("file:"+System.getProperty("user.dir")+"/upload/");
+  }
+
+}
+```
+
+> 表情包问题
+
+自己手动下载emoji 表情包，放到图片路径下并修改editormd.js文件
+
+```js
+// Emoji graphics files url path
+editormd.emoji     = {
+   path : "../editormd/plugins/emoji-dialog/emoji/",
+   ext   : ".png"
+};
+```
