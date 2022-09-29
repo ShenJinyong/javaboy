@@ -1,5 +1,4 @@
 ---
-
 layout: home
 
 hero:
@@ -21,6 +20,9 @@ hero:
     - theme: alt
       text: 🏹牛逼网站
       link: https://www.nbwz.com/dianying/
+    - theme: alt
+      text: 🏹json工具
+      link: https://www.bejson.com/
 features:
 - icon: 📖
   title: ❌ 学习方法
@@ -34,5 +36,4 @@ features:
 - icon: 🧊
   title: 🧊 运维类
   details: 🥦Linux 📰Git 🗄️Maven
-  
 ---
