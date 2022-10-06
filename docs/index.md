@@ -6,6 +6,9 @@ hero:
   tagline: 您好 Java 男孩！欢迎来到我的博客~
   actions:
     - theme: alt
+      text: 🐤 stackOverflow中文网
+      link: https://stackoom.com
+    - theme: alt
       text: 🐤 开发手册
       link: http://localhost:5173/javaboy/开发手册/阿里巴巴-JAVA开发手册-泰山版.pdf
     - theme: alt
