@@ -9,6 +9,9 @@ hero:
       text: 🐤 stackOverflow中文网
       link: https://stackoom.com
     - theme: alt
+      text: 🐤 矢量图标库
+      link: https://www.iconfont.cn/
+    - theme: alt
       text: 🐤 开发手册
       link: http://localhost:5173/javaboy/开发手册/阿里巴巴-JAVA开发手册-泰山版.pdf
     - theme: alt
