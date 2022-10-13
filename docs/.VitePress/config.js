@@ -24,6 +24,7 @@ module.exports = {
           { text: "🍃 SpringMVC", link: "/开发框架/SpringMVC" },
           { text: "🐤 MyBatis", link: "/开发框架/MyBatis" },
           { text: "🐤 MyBatisPlus", link: "/开发框架/MyBatisPlus" },
+		  { text: "🐤 MyBatisPlus", link: "/开发框架/MyBatisPlusPlus" },
           { text: "🏯 SSM", link: "/开发框架/SSM" },
           { text: "📦 SpringBoot", link: "/开发框架/SpringBoot" },
         ]
