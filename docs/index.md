@@ -8,6 +8,9 @@ hero:
     - theme: alt
       text: 🐤 stackOverflow中文网
       link: https://stackoom.com
+      - theme: alt
+      text: 🐤 javaGuide
+      link: https://javaguide.cn/
     - theme: alt
       text: 🐤 矢量图标库
       link: https://www.iconfont.cn/
