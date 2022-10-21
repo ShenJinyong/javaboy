@@ -2,6 +2,12 @@
 
 ## 下载
 
+删除nginx
+
+```sh
+yum remove nginx
+```
+
 下载nginx
 
 ```sh
