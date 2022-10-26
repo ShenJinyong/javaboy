@@ -8,7 +8,10 @@ hero:
     - theme: alt
       text: 🐤 stackOverflow中文网
       link: https://stackoom.com
-      - theme: alt
+    - theme: alt
+      text: 🐤 jwt解密工具
+      link: http://lzltool.cn/jwt-decode
+    - theme: alt
       text: 🐤 javaGuide
       link: https://javaguide.cn/
     - theme: alt
