@@ -9,6 +9,9 @@ hero:
       text: 🐤 stackOverflow中文网
       link: https://stackoom.com
     - theme: alt
+      text: 🐤 apibug工具
+      link: https://www.apibug.com/
+    - theme: alt
       text: 🐤 jwt解密工具
       link: http://lzltool.cn/jwt-decode
     - theme: alt
