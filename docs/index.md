@@ -9,6 +9,9 @@ hero:
       text: 🐤 stackOverflow中文网
       link: https://stackoom.com
     - theme: alt
+      text: 🐤 截图+贴图工具
+      link: https://zh.snipaste.com/
+    - theme: alt
       text: 🐤 apibug工具
       link: https://www.apibug.com/
     - theme: alt
