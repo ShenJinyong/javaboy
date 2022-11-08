@@ -199,16 +199,318 @@ Redis自增ID策略：
 - 每天一个key，方便统计订单量
 - ID构造是：时间戳+计数器
 
+### 实现优惠卷秒杀下单
 
+下单时需要判断两点：
 
-### 实现优惠卷秒杀下下单
+- 秒杀是否开始或结束，如果尚未开始或已经结束则无法下单
+- 库存是否充足，不足则无法下单
 
 ### 超卖问题
 
+超卖问题是典型的多线程安全问题，针对这一问题的常见解决方案就是加锁：
+
+- 悲观锁：认为线程安全问题一定会发生，因此在操作数据之前先获取锁，确保线程串行执行
+  - 例如Synchronized、Lock都属于悲观锁
+- 乐观锁：认为线程安全问题不一定会发生，因此不加锁，只是在更新时去判断有没有其他线程对数据做了修改。
+  - 如果没有修改则认为是安全的，自己才更新数据。
+  - 如果已经被其他线程修改说明发生了安全问题，此时可以重试或异常
+
+乐观锁的关键是判断之前查询得到的数据是否被修改过，常见的方式有两种：
+
+- 版本号法
+- CAS法，CompareAndSwap比较并交换+失败重试
+
 ### 一人一单
 
-### 分布式锁
+启动类
 
-### Redis优化秒杀
+```java
+@EnableAspectJAutoProxy(exposeProxy = true)
+```
 
-### Redis消息队列实现异步秒杀
+```java
+// 锁的是当前对象的id的值
+synchronized (userId.toString().intern()){
+    // this调用事务会失效,获取代理对象（事务）
+    IVoucherOrderService proxy = (IVoucherOrderService) AopContext.currentProxy();
+    return proxy.createVoucherOrder(voucherId);
+}
+```
+
+```java
+@Override
+@Transactional
+// 当前事务级别是可重复读；事务要想生效需要拿到当前对象的代理对象
+public Result createVoucherOrder(Long voucherId){
+    // 7.返回订单id
+    return Result.ok(orderId);
+}
+```
+
+> 一人一单的并发安全问题
+
+多台JVM，锁监视器不同，存在问题
+
+## 分布式锁
+
+分布式锁：满足分布式系统或集群模式下多进程可见并且互斥的锁。
+
+特点：
+
+- 多进程可见
+- 互斥
+- 高可用
+- 高性能
+- 安全性
+
+### 分布式锁的实现
+
+分布式的核心是实现多进程之间互斥，而满足这一天的方式有很多，常见的有三种：
+
+|        | MySQL                     | Redis                    | Zookeeper                        |
+| ------ | ------------------------- | ------------------------ | -------------------------------- |
+| 互斥   | 利用mysql本身的互斥锁机制 | 利用setnx这样的互斥命令  | 利用节点的唯一性和有序性实现互斥 |
+| 高可用 | 好                        | 好                       | 好                               |
+| 高性能 | 一般                      | 好                       | 一般                             |
+| 安全性 | 断开连接，自动释放锁      | 利用锁超时时间，到期释放 | 临时节点，断开连接自动释放       |
+
+### 基于Redis的分布式锁
+
+实现分布式锁时需要实现的两个基本方法：
+
+- 获取锁：
+  - 互斥：确保只能由一个线程获取锁
+  - 添加锁，利用setnx的互斥性`setnx lock thread1`
+  - 添加锁过期，避免服务宕机引起的死锁`expire lock 10`
+  - 合并，原子性【添加锁，nx时互斥，ex是设置超时时间】`set lock thread1 nx ex 10`
+- 释放锁：
+  - 手动释放：释放锁，删除即可`del key`
+  - 超时释放：获取锁时添加一个超时时间
+
+说明:这是个不可重入锁
+
+> 锁初级版本
+
+```java
+// 获取锁对象
+SimpleRedisLock lock = new SimpleRedisLock("order:" + userId, stringRedisTemplate);
+boolean isLock = lock.tryLock(100);
+// 判断是否获取锁车成功
+if(!isLock){
+    // 获取锁失败，返回错误或重试
+    return Result.fail("不允许重复下单");
+}
+try {
+    // this调用事务会失效,获取代理对象（事务）
+    IVoucherOrderService proxy = (IVoucherOrderService) AopContext.currentProxy();
+    return proxy.createVoucherOrder(voucherId);
+} finally {
+    // 释放锁
+    lock.unlock();
+}
+```
+
+> 分布式锁误删问题
+
+需求：修改之前的分布式锁实现，满足：
+
+1. 在获取锁时存入线程标识（可以用UUID表示）
+2. 在释放锁时先获取锁中的线程标识，判断是否与当前线程标示一致
+   1. 如果一致则释放锁
+   2. 如果不一致则不释放锁
+
+```java
+public class SimpleRedisLock implements ILock {
+
+    private String name;
+
+    private StringRedisTemplate stringRedisTemplate;
+
+    public SimpleRedisLock(String name, StringRedisTemplate stringRedisTemplate) {
+        this.name = name;
+        this.stringRedisTemplate = stringRedisTemplate;
+    }
+
+    private static final String KEY_PREFIX = "lock:";
+    private static final String ID_PREFIX = UUID.randomUUID().toString(true) + "-";
+
+    @Override
+    public boolean tryLock(long timeoutSec) {
+        // 获取线程标识
+        String threadId = ID_PREFIX + Thread.currentThread().getId();
+        // 获取锁
+        Boolean success = stringRedisTemplate.opsForValue().setIfAbsent(KEY_PREFIX + name, threadId, timeoutSec, TimeUnit.MINUTES);
+        return BooleanUtil.isTrue(success);
+//        return Boolean.TRUE.equals(success);
+    }
+
+    @Override
+    public void unlock() {
+        // 获取线程标识
+        String threadId = ID_PREFIX + Thread.currentThread().getId();
+        // 获取锁中的标识
+        String id = stringRedisTemplate.opsForValue().get(KEY_PREFIX + name);
+        if(threadId.equals(id)){
+            // 释放锁
+            stringRedisTemplate.delete(KEY_PREFIX + name);
+        }
+    }
+}
+```
+
+> 分布式锁的原子性问题
+
+JVM的Full GC的时候阻塞~；时间片用完~
+
+Lua脚本解决多条命令原子性问题
+
+> Redis的Lua脚本
+
+Redis提供了Lua脚本功能，在一个脚本中编写多条Redis命令，确保多条命令执行时的原子性。
+
+Lua语言教程：https://www.runoob.com/lua/lua-tutorial.html
+
+Redis提供的调用函数，语法如下：
+
+```sh
+# 执行redis命令
+redis.call('命令名称','key','其他参数',...)
+```
+
+调用脚本的常见命令
+
+```sh
+# 0 脚本需要的key类型的参数个数
+eval "return redis.call('set','name','jack')" 0
+```
+
+实践
+
+```
+-- 锁的key
+local key = KEYS[1]
+-- 当前线程标识
+local threadId = ARGV[1]
+-- 获取锁中的线程标识 get key
+local id = redis.call('get',key)
+
+-- 标间线程标识与锁中的标识是否一致
+if(id == threadId) then
+    -- 释放锁 del key
+    return redis.call('del',key)
+end
+
+return 0
+```
+
+> 再次改进Redis的分布式锁
+
+需求：基于Lua脚本实现分布式锁的释放锁逻辑
+
+提示：RedisTemplate调用Lua脚本的API
+
+```java
+private static final DefaultRedisScript<Long> UNLOCK_SCRIPT;
+
+static {
+    UNLOCK_SCRIPT = new DefaultRedisScript<>();
+    UNLOCK_SCRIPT.setLocation(new ClassPathResource("unlock.lua"));
+    UNLOCK_SCRIPT.setResultType(Long.class);
+}
+
+@Override
+public void unlock() {
+    // 调用lua脚本
+    stringRedisTemplate.execute(
+        UNLOCK_SCRIPT,
+        Collections.singletonList(KEY_PREFIX + name),
+        ID_PREFIX + Thread.currentThread().getId());
+}
+```
+
+> 总结
+
+基于Redis的分布式锁实现思路：
+
+- 利用set nx ex 获取锁，并设置过期时间，保存线程标识
+- 释放锁时先判断线程表示是否与自己一致，一致则删除锁
+
+特性：
+
+- 利用set ex满足互斥性
+- 利用set ex保证故障时锁依然能释放，避免死锁，提高安全性
+- 利用R额滴神集群保证高可用和高并发特性
+
+### Redisson
+
+基于setnx实现的分布式锁存在下面的问题：
+
+- 不可重入，同一个线程无法多次获取同一把锁
+- 不可重试，获取锁只尝试一次就返回false，没有重试机制
+- 超时释放，锁超时释放虽然可用避免死锁，但如果业务执行耗时较长，也会导致锁释放，存在安全隐患
+- 主从一致性，如果Redis提供了主从集群，主从同步存在延迟，当主宕机时，如果从并同步主中的锁数据，则会出现锁实现
+
+Redisson时一个在Redis的基础上实现的Java驻内存数据网格（In-Memory Data Grid）。它布局提供了一系列的分布式的Java常用对象，还提供了许多分布式服务，其中就包含了各种分布式锁的实现。
+
+> 使用
+
+引入依赖
+
+```xml
+<dependency>
+    <groupId>org.redisson</groupId>
+    <artifactId>redisson</artifactId>
+    <version>3.13.6</version>
+</dependency>
+```
+
+添加配置
+
+```java
+@Configuration
+public class RedisConfig {
+
+    @Bean
+    public RedissonClient redissonClient(){
+        // 配置类
+        Config config = new Config();
+        // 添加redis地址，这里添加了单点的地址，也可以使用config.useClusterServers()添加集群地址
+        config.useSingleServer().setAddress("redis://localhost:6379").setPassword("123456");
+        // 创建客户端
+        return Redisson.create(config);
+    }
+}
+```
+
+使用Redisson的分布式锁
+
+```java
+@Resource
+private RedissonClient redissonClient;
+
+@Test
+void testRedisson() throws InterruptedException {
+    // 获取锁（可重入），指定锁的名称
+    RLock lock = redissonClient.getLock("anyLock");
+    // 尝试获取锁，参数分别是：获取锁的最大等待时间（期间会重试），锁自动释放时间，时间单位
+    boolean isLock = lock.tryLock(1, 10, TimeUnit.SECONDS);
+    // 判断释放获取成功
+    if (isLock){
+        try{
+            System.out.println("执行业务");
+        }finally {
+            // 释放锁
+            lock.unlock();
+        }
+    }
+}
+```
+
+> Redisson可重入锁原理
+
+
+
+## Redis优化秒杀
+
+## Redis消息队列实现异步秒杀
