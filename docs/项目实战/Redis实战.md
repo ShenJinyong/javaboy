@@ -509,8 +509,222 @@ void testRedisson() throws InterruptedException {
 
 > Redisson可重入锁原理
 
+获取锁的Lua脚本
 
+```
+local key = KEYS[1]; -- 锁的key
+local thread = ARGV[1]; -- 线程唯一标识
+local releaseTime = ARGV[2]; -- 锁的自动释放时间
+-- 判断是否存在
+if(redis.call('exists',key) == 0)then
+	-- 不存在，获取锁
+	redis.call('hset',key,threadId,'1');
+	-- 设置有效期
+	redis.call('expire',key,releaseTime);
+	return 1; -- 返回结果
+end;
+-- 锁已经存在，判断threadId是否是自己
+if(redis.call('hexists',key,threadId) == 1)then
+	-- 不存在，获取锁，重入次数+1
+	redis.call('hincrby',key,threadId,'1');
+	-- 设置有效期
+	redis.call('expire',key,releaseTime);
+	return 1; -- 返回结果
+end;
+return 0; --代码走到这里，说明获取锁的不是自己，获取锁失败
+```
+
+释放锁的Lua脚本：
+
+```
+local key = KEYS[1]; -- 锁的key
+local thread = ARGV[1]; -- 线程唯一标识
+local releaseTime = ARGV[2]; -- 锁的自动释放时间
+-- 判断当前锁是否还是被自己持有
+if(redis.call('HEXISTS',key，threadId) == 0)then
+	return nil; -- 如果已经不是自己，则直接返回
+end;
+-- 是自己的锁，则重入次数-1
+local count = redis.call('HINCRBY',key,threadId,-1);
+-- 判断是否重入次数已经为0
+if(count > 0) then
+	-- 大于0说明不能释放锁，重置有效期然后返回
+	redis.call('expire',key,releaseTime);
+	return nil;
+else -- 等于0说明可以释放锁，直接删除
+	redis.call('DEL',key);
+	return nil;
+end;
+```
+
+> 锁重试和WatchDog机制
+
+```java
+@Override
+public boolean tryLock(long waitTime, long leaseTime, TimeUnit unit) throws InterruptedException {
+    long time = unit.toMillis(waitTime);
+    long current = System.currentTimeMillis();
+    long threadId = Thread.currentThread().getId();
+    Long ttl = tryAcquire(waitTime, leaseTime, unit, threadId);
+    // lock acquired
+    if (ttl == null) {
+        return true;
+    }
+
+    time -= System.currentTimeMillis() - current;
+    if (time <= 0) {
+        acquireFailed(waitTime, unit, threadId);
+        return false;
+    }
+
+    current = System.currentTimeMillis();
+    RFuture<RedissonLockEntry> subscribeFuture = subscribe(threadId);
+    if (!subscribeFuture.await(time, TimeUnit.MILLISECONDS)) {
+        if (!subscribeFuture.cancel(false)) {
+            subscribeFuture.onComplete((res, e) -> {
+                if (e == null) {
+                    unsubscribe(subscribeFuture, threadId);
+                }
+            });
+        }
+        acquireFailed(waitTime, unit, threadId);
+        return false;
+    }
+
+    try {
+        time -= System.currentTimeMillis() - current;
+        if (time <= 0) {
+            acquireFailed(waitTime, unit, threadId);
+            return false;
+        }
+
+        while (true) {
+            long currentTime = System.currentTimeMillis();
+            ttl = tryAcquire(waitTime, leaseTime, unit, threadId);
+            // lock acquired
+            if (ttl == null) {
+                return true;
+            }
+
+            time -= System.currentTimeMillis() - currentTime;
+            if (time <= 0) {
+                acquireFailed(waitTime, unit, threadId);
+                return false;
+            }
+
+            // waiting for message
+            currentTime = System.currentTimeMillis();
+            if (ttl >= 0 && ttl < time) {
+                subscribeFuture.getNow().getLatch().tryAcquire(ttl, TimeUnit.MILLISECONDS);
+            } else {
+                subscribeFuture.getNow().getLatch().tryAcquire(time, TimeUnit.MILLISECONDS);
+            }
+
+            time -= System.currentTimeMillis() - currentTime;
+            if (time <= 0) {
+                acquireFailed(waitTime, unit, threadId);
+                return false;
+            }
+        }
+    } finally {
+        unsubscribe(subscribeFuture, threadId);
+    }
+    //        return get(tryLockAsync(waitTime, leaseTime, unit));
+}
+```
+
+流程
+
+- 尝试获取锁
+- 判断ttl是否为null
+- 是，判断leaseTime是否为-1
+  - 是开启watchDog
+  - 否返回true
+
+- 否，判断剩余等待时间是都大于0
+  - 否，返回false
+  - 是，订阅并等待释放锁的信号
+
+- 判断等待时间是否超时
+  - 是，返回false
+  - 否，回到尝试获取锁
+
+> Redisson分布式锁原理
+
+- 可重入：利用hash结构记录线程id和可重入次数
+- 可重试：利用信号量和pubsub功能实现等待、唤醒，获取锁失败的重试机制
+- 超时续约：利用watchDog，每隔一段时间（releaseTime/3），重置超时时间
+
+> Redisson分布式锁主从一致性问题
+
+getMultiLock连锁，多主，互不通信，对应从
+
+总结：
+
+- 不可重入Redis分布式锁：
+  - 原理：利用setnx的互斥性；利用ex避免死锁；释放锁时判断线程标识
+  - 缺陷：不可重入、无法重试、锁超时失效
+
+- 可重入的Redis分布式锁：
+  - 原理：利用hash结构，记录线程标识和重入次数；利用watchDog延续锁时间；利用信号量控制锁重试等待
+  - 缺点：redis宕机引起锁失效问题
+
+- Redisson的multiLock：
+  - 原理：多个独立的Redis结点，必须在所有节点都获取重入锁，才算获取锁成功
+  - 缺险运维成本高、实现复杂
 
 ## Redis优化秒杀
+
+需求：
+
+- 新增秒杀优惠卷的同时，将优惠卷信息保存到Redis中
+- 基于Lua脚本，判断秒杀库存、一人一单，决定用户是否抢购成功
+- 如果抢购成功，将优惠卷id和用户id封装后存入阻塞队列
+- 开启线程任务，不断从阻塞队列中获取信息，实现异步下单功能
+
+lua脚本
+
+```
+--- 1.参数列表
+--- 1.1优惠卷id
+local voucherId = ARGV[1]
+--- 1.2用户id
+local userId = ARGV[2]
+
+--- 2.数据key
+--- 2.1库存key
+local stockKey = 'seckill:stock:' .. voucherId
+--- 2.2订单key
+local orderKey = 'seckill:order:' .. voucherId
+
+--- 3.脚本业务
+--- 3.1判断库存是否充足 get stockKey
+if(tonumber(redis.call('get',stockKey)) <= 0) then
+    --- 库存不足，返回1
+    return 1
+end
+--- 3.2判断用户是否下单 sismember orderKey userId
+if(redis.call('sismember',orderKey,userId) == 1) then
+    --- 存在，说明时重复下单，返回2
+    return 2
+end
+--- 3.3扣库存 incrby stockKey -1
+redis.call('incrby',stockKey,-1)
+--- 3.4下单(保存用户) saddorderKey userId
+redis.call('sadd',orderKey,userId)
+return 0
+```
+
+> 总结
+
+秒杀业务的优化思路是什么？
+
+- 先利用Redis完成库存余量、一人一旦判断，完成抢单业务
+- 再将下单业务放入阻塞对，利用独立线程异步下单
+
+基于阻塞队列的异步秒杀存在哪些问题？
+
+- 内存限制问题
+- 数据安全问题
 
 ## Redis消息队列实现异步秒杀
