@@ -911,3 +911,221 @@ Feed中的数据会不断更新，所以数据的角标也在变化，因此不�
 > 实现关注推送页面的分页查询
 
 需求：在个人主页的“关注”卡片中，查询并展示推送的Blog信息
+
+## 附近商铺
+
+### GEO数据结构
+
+GEO是Geolocation的简写形式，代表地理坐标。Redis在3.2版本中加入对GEO的支持，允许存储地理坐标信息，帮助我们根据经纬度来检索数据。常见的命令有：
+
+GEOADD：添加一个地址空间信息，包含：经度（longitude）、维度（latitude）、值（member）。
+
+GEODIST：计算指定的两个点之间的距离并返回
+
+GEOHASH：将指定member的坐标转为hash字符串形式并返回
+
+GROPOS：返回指定member的坐标
+
+GEORADIUS：指定圆心、半径，周到该圆内的所有member，并按照与圆心之间的距离排序后返回。6.2以后已废弃。
+
+GEOSEARCH：在指定范围内搜索member，并按照与指定点之间的距离排序后返回。范围可以是原形或矩形。6.2新功能
+
+GEOSERCHSTORE:与GEOSEARCH功能一致，不过可以把结果存储到一个指定的key。6.2新功能
+
+### 附近商户搜索
+
+```java
+@Override
+public Result queryShopByType(Integer typeId, Integer current, Double x, Double y) {
+    // 1.是否需要根据坐标查询
+    if(x == null || y == null){
+        // 根据类型分页查询
+        Page<Shop> page = query()
+            .eq("type_id", typeId)
+            .page(new Page<>(current, SystemConstants.DEFAULT_PAGE_SIZE));
+        // 返回数据
+        return Result.ok(page.getRecords());
+    }
+    // 2.计算分页参数
+    int from = (current -1)* SystemConstants.DEFAULT_PAGE_SIZE;
+    int end = current * SystemConstants.DEFAULT_PAGE_SIZE;
+    // 3.告诉redis，按照距离排序、分页,结果：shopId，distance
+    String key = RedisConstants.SHOP_GEO_KEY + typeId;
+    GeoResults<RedisGeoCommands.GeoLocation<String>> results = stringRedisTemplate.opsForGeo().radius(key, new Circle(new Point(x, y), new Distance(5000)), RedisGeoCommands.GeoRadiusCommandArgs.newGeoRadiusArgs().includeDistance().limit(end));
+    // 4.解析出id
+    if(results == null){
+        return Result.ok(Collections.emptyList());
+    }
+    List<GeoResult<RedisGeoCommands.GeoLocation<String>>> list = results.getContent();
+    if(list.size() <= from){
+        // 没有下一页了，结束
+        return Result.ok(Collections.emptyList());
+    }
+    // 4.1截取from-end部分
+    ArrayList<Long> ids = new ArrayList<>(list.size());
+    Map<String,Distance> distanceMap = new HashMap<>(list.size());
+    list.stream().skip(from).forEach(result -> {
+        // 4.2获取店铺id
+        String shopIdStr = result.getContent().getName();
+        ids.add(Long.valueOf(shopIdStr));
+        // 4.2获取距离
+        Distance distance = result.getDistance();
+        distanceMap.put(shopIdStr,distance);
+    });
+    // 5.根据id查询shop
+    String idStr = StrUtil.join(",", ids);
+    List<Shop> shops = query().in("id", ids).last("order by field(id," + idStr + ")").list();
+    for(Shop shop:shops){
+        shop.setDistance(distanceMap.get(shop.getId().toString()).getNormalizedValue());
+    }
+    // 6.返回
+    return Result.ok(shops);
+}
+```
+
+## 用户签到
+
+### BitMap用法
+
+我们按月来统计用户签到信息，签到记录为1，未签到则记录为0。
+
+把每一个bit位对应当月的每一天，形成了映射关系。用0和1表示业务状态，这种思路就称位位图（BitMap）。
+
+Redis中式利用String类型数据结构实现BitMap，因此最大上限是512M，转换为bit则是2的32个bit位。
+
+BitMap的操作命令有：
+
+SETBIT：向指定位置（offset）的bit值
+
+GETBIT：获取指定位置（offset）的bit值
+
+BITCOUNT：统计BitMap中值为1的bit位的数量
+
+BITFIELD:操作（查询、修改、自增）BitMap中bit数组中的指定位置（offset）的值
+
+BITFIELD_RO：获取BitMap中bit数组，并以十进制形式返回
+
+BITOP：将多个BitMap的结果做位运算（与、或、异或）
+
+BITPOS：查找bit数组中指定范围内第一个0或1出现的位置
+
+### 签到功能
+
+提示：因为BitMap底层是基于String数据结构，因此其操作也都封装在字符串相关操作中了。
+
+```java
+@Override
+public Result sign() {
+    // 1.获取当前登录用户
+    Long userId = UserHolder.getUser().getId();
+    // 2.获取日期
+    LocalDateTime now = LocalDateTime.now();
+    // 3.拼接key
+    String keySuffix = now.format(DateTimeFormatter.ofPattern(":yyyyMM"));
+    String key = RedisConstants.USER_SIGN_KEY + userId +keySuffix;
+    // 4.获取今天是本月的第几天
+    int dayOfMonth = now.getDayOfMonth();
+    // 5.写入Redis setbit key offset 1
+    stringRedisTemplate.opsForValue().setBit(key,dayOfMonth-1,true);
+    return Result.ok();
+}
+```
+
+### 签到统计
+
+> 什么叫做连续签到天数？
+
+从最后一次签到开始向前统计，知道遇到第一次未签到为止，计算总的签到次数，就是连续签到天数。
+
+> 如何得到本月到今天为止的所有签到数据？
+
+bitfield key get u[dayOfMonth]0
+
+> 如何从后向前遍历每个bit位？
+
+与1做与运算，就能得到最后一个bit位 
+
+随后右移1位，下一个bit位就成为了最后一个bit位。
+
+> 需求
+
+统计当前用户截止当前时间在本月的连续签到天数
+
+```java
+public Result signCount() {
+    // 1.获取当前登录用户
+    Long userId = UserHolder.getUser().getId();
+    // 2.获取日期
+    LocalDateTime now = LocalDateTime.now();
+    // 3.拼接key
+    String keySuffix = now.format(DateTimeFormatter.ofPattern(":yyyyMM"));
+    String key = RedisConstants.USER_SIGN_KEY + userId +keySuffix;
+    // 4.获取今天是本月的第几天
+    int dayOfMonth = now.getDayOfMonth();
+    // 5.获取本月截止今天为止的所有的签到记录，返回的是一个十进制的数字
+    List<Long> result = stringRedisTemplate.opsForValue().bitField(key, BitFieldSubCommands.create().get(BitFieldSubCommands.BitFieldType.unsigned(dayOfMonth)).valueAt(0));
+    if(result == null || result.isEmpty()){
+        // 没有任何签到结果
+        return Result.ok(0);
+    }
+    Long num = result.get(0);
+    if(num == null || num == 0){
+        return  Result.ok(0);
+    }
+    // 6.遍历循环
+    int count = 0;
+    while (true){
+        // 6.1让这个数字与1做与预算，得到数字的最后一个bit位// 判断这个bit位是否为0
+        if((num & 1) == 0){
+            // 如果为0，说明未签到，结束
+            break;
+        }else{
+            // 如果不为0，说明已签到，计数器+1
+            count++;
+        }
+        // 把数字右移以为，抛弃最后一个bit位，继续下一个bit位
+        num >>>= 1;
+    }
+    return Result.ok(count);
+}
+```
+
+## UV统计
+
+### HyperLogLog用法
+
+> 概念
+
+UV:全称Unique Visitor，也叫独立访问客量，是指通过互联网访问、浏览这个网页的自然人。1天内同一个用户多次访问改网站，直记录1次
+
+PV：全称Page View，也叫页面访问或点击量，用户每访问网站的一个页面，记录1次PV，用户多次打开页面，则记录多次PV。往往用来衡量网站的流量。
+
+UV统计在服务端做会比较麻烦，因为要判断该用户是否已经统计过了，需要将统计过的用户信息保存。但是如果每个访问的用户都保存到Redis中，数据量会非常恐怖。
+
+> HyperLogLog用法
+
+HyperLogLog（HLL）是LogLog算法派生出来的概率算法，用于确定非常大的集合的基数，而不需要存储其所有值。
+
+Redis中的HLL是基于String结构实现，单个HLL的内存永远消息16kb，内存占用低的令人发指！作为代价，其测量结果是概率性的，有小于0.81%的误差。不过对于UV统计来说，这完全可以忽略。
+
+### 实现UV统计
+
+```java
+@Test
+void testHyperLogLog(){
+    String[] values = new String[1000];
+    int j = 0;
+    for (int i = 0;i<1000000;i++){
+        j = i % 1000;
+        values[j] = "user_" + i;
+        if(j == 999){
+            // 发送到Redis
+            stringRedisTemplate.opsForHyperLogLog().add("hl2",values);
+        }
+    }
+    // 统计数量
+    Long count = stringRedisTemplate.opsForHyperLogLog().size("hl2");
+    System.out.println("count="+count);
+}
+```
+
