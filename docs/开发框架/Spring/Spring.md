@@ -1095,7 +1095,7 @@ SpringAOP中，通过Advice定义横切逻辑，Spring中支持5种类型的Advi
 | 后置通知     | 方法执行后           | AfterReturningAdvice    |
 | 环绕通知     | 方法执行前后         | MethodInterceptor       |
 | 异常抛出通知 | 方法抛出异常         | ThrowsAdvice            |
-| 引介通知     | 类种增加新的方法属性 | IntroductionInterceptor |
+| 引介通知     | 类中增加新的方法属性 | IntroductionInterceptor |
 
 即 Aop 在 不改变原有代码的情况下 , 去增加新的功能。
 

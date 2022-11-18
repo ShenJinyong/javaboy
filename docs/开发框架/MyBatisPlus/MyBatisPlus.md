@@ -32,10 +32,6 @@ MyBatis-Plus（简称 MP）是一个 MyBatis的增强工具，在 MyBatis 的基
 - MySQL，Oracle，DB2，H2，HSQL，SQLite，PostgreSQL，SQLServer，Phoenix，Gauss ，ClickHouse，Sybase，OceanBase，Firebird，Cubrid，Goldilocks，csiidb
 - 达梦数据库，虚谷数据库，人大金仓数据库，南大通用(华库)数据库，南大通用数据库，神通数据库，瀚高数据库
 
-> 框架结构
-
-![mybatis-plus-framework](.\images\mybatis-plus-framework.jpg)
-
 ## 快速开始
 
 > 表结构和数据
