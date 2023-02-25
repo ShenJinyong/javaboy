@@ -19,33 +19,13 @@ module.exports = {
     ],
     // 导航栏
 	  nav: [
-      { text: '首页', link: '/' },
+      { text: 'Home', link: '/' },
       { 
-        text: '开发框架', 
+        text: 'LeetCode', 
         items: [
-          { text: "Spring", link: "/开发框架/Spring/Spring" },
-          { text: "SpringMVC", link: "/开发框架/SpringMVC/SpringMVC" },
-          { text: "MyBatis", link: "/开发框架/MyBatis/MyBatis" },
-          { text: "MyBatisPlus", link: "/开发框架/MyBatisPlus/MyBatisPlus" },
-		      { text: "MyBatisPlusPlus", link: "/开发框架/MyBatisPlusPlus/MyBatisPlusPlus" },
-          { text: "SpringBoot", link: "/开发框架/SpringBoot/SpringBoot" },
-          { text: "Shiro", link: "/开发框架/Shiro/Shiro" }
-        ]
-      },
-      { 
-        text: '数据库', 
-        items: [
-          { text: "MySQL", link: "/数据库/MySQL/MySQL" },
-          { text: "PostgreSQL", link: "/数据库/PostgreSQL/PostgreSQL" },
-          { text: "Redis", link: "/数据库/Redis/Redis" },
-          { text: "MongoDB", link: "/数据库/MongoDB/MongoDB" }
-        ]
-      },
-      { 
-        text: '算法和数据结构', 
-        items: [
-          { text: "基本概念", link: "/算法和数据结构/基本概念/基本概念" },
-          { text: "排序算法", link: "/算法和数据结构/排序算法/排序算法" }
+          { text: "1.两数之和", link: "/LeetCode/1.两数之和" },
+          { text: "2.两数相加", link: "/LeetCode/2.两数相加" },
+          { text: "3.无重复字符的最长子串", link: "/LeetCode/3.无重复字符的最长子串" }
       ]
     }
     ],
