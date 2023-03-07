@@ -44,7 +44,8 @@ module.exports = {
       { 
         text: '实战', 
         items: [
-          { text: "测试用例和文档", link: "/实战/测试用例和文档" }
+          { text: "测试用例和文档", link: "/实战/测试用例和文档" },
+          { text: "信创", link: "/实战/信创" }
         ]
       }
     ],
